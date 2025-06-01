@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+  <title>Pattern Predictor Game - Advanced AI v3</title>
+  <style>
+    body {
+      display: flex;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f2f5; /* Slightly softer background */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font stack */
+      overflow-x: hidden;
+    }
+
+    /* Sidebar for Coins and Stake */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 110px; /* Slightly wider for new stake buttons */
+      height: 100%;
+      background-color: #e9ecef; /* Lighter sidebar */
+      padding: 20px 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    .coin-display {
+      font-size: 24px; /* Larger for emoji */
+      font-weight: bold;
+      color: #2a2a2a;
+      margin-bottom: 25px;
+      background-color: #ffc107; /* Gold-ish */
+      padding: 8px 15px;
+      border-radius: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .coin-display span {
+      margin-left: 5px;
+      font-size: 20px; /* Coin count size */
+    }
+
+    .stake-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    .stake-controls label {
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 500;
+    }
+    .stake-input-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+    .stake-input-wrapper button {
+      width: 28px;
+      height: 28px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 1px solid #ccc;
+      background-color: #f8f9fa;
+      cursor: pointer;
+      color: #333;
+      line-height: 1; /* For better vertical centering of text */
+    }
+    .stake-input-wrapper button:hover {
+      background-color: #e2e6ea;
+    }
+    .stake-input-wrapper button:first-child {
+      border-radius: 5px 0 0 5px;
+    }
+    .stake-input-wrapper button:last-child {
+      border-radius: 0 5px 5px 0;
+    }
+    .stake-input-wrapper input {
+      width: 40px; /* Adjusted width */
+      height: 28px;
+      padding: 5px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-left: none;
+      border-right: none;
+      border-radius: 0; /* Remove individual radius */
+      text-align: center;
+      box-sizing: border-box;
+      -moz-appearance: textfield; /* Firefox */
+    }
+    .stake-input-wrapper input::-webkit-outer-spin-button,
+    .stake-input-wrapper input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+
+    /* Main Game Area */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* Center content horizontally */
+      justify-content: center; /* Center content vertically for overall balance */
+      margin-left: 110px; /* Offset for sidebar */
+      padding: 15px; /* Overall padding */
+      box-sizing: border-box;
+      position: relative;
+    }
+    
+    .game-content-wrapper { /* New wrapper to control width and centering */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 450px; /* Max width for the central game elements */
+    }
+
+    #btnToggleConfidence {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background-color: #28a745; /* Green */
+      color: white;
+      border: none;
+      padding: 7px 12px;
+      font-size: 13px;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 5;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    #btnToggleConfidence:hover {
+      background-color: #218838;
+    }
+    #btnAIGuess {
+      position: absolute;
+      top: 55px; /* Below confidence toggle */
+      right: 15px;
+      background-color: #17a2b8; /* Info Blue */
+      color: white;
+      border: none;
+      padding: 7px 12px;
+      font-size: 13px;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 5;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    #btnAIGuess:hover {
+      background-color: #138496;
+    }
+     #btnAIGuess:disabled {
+      background-color: #adb5bd !important;
+      cursor: not-allowed;
+    }
+
+
+    .game-info-area {
+      text-align: center;
+      margin-bottom: 20px; /* Increased margin */
+      min-height: 65px;
+      width: 100%;
+    }
+    #scoreDisplay, #trialsDisplay {
+      font-size: 18px;
+      font-weight: 600; /* Slightly bolder */
+      color: #343a40; /* Darker text */
+      display: block;
+      margin-bottom: 4px;
+    }
+    #statusMessage {
+      font-size: 15px;
+      color: #495057;
+      margin-top: 8px;
+      min-height: 1.3em;
+      font-style: italic;
+    }
+
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px; /* Maintained gap */
+      width: 100%; /* Fill game-content-wrapper */
+      max-width: 340px; /* Slightly increased for better visuals */
+      margin-bottom: 25px; /* Increased margin */
+    }
+    .grid-button-container {
+        position: relative;
+    }
+    .grid-button {
+      width: 100%;
+      aspect-ratio: 1 / 1; /* Make buttons square */
+      padding: 0; /* Remove padding, rely on flex for centering text */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px; /* Slightly larger font in buttons */
+      font-weight: bold;
+      border: none;
+      border-radius: 8px; /* More rounded */
+      cursor: pointer;
+      background-color: #ff7675; /* F color - light red */
+      color: white;
+      transition: background-color 0.2s, transform 0.1s;
+      box-sizing: border-box;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .grid-button:active {
+        transform: scale(0.95);
+    }
+    .grid-button.t {
+      background-color: #55efc4; /* T color - light green/teal */
+      color: #2d3436; /* Darker text on light green */
+    }
+    .confidence-text {
+      position: absolute;
+      bottom: 3px;
+      right: 5px;
+      font-size: 10px;
+      color: #2d3436;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 1px 4px;
+      border-radius: 3px;
+      pointer-events: none;
+    }
+
+
+    /* Action Buttons Footer */
+    .footer {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px; /* Increased gap */
+      width: 100%;
+      max-width: 380px; /* Consistent with grid max-width */
+    }
+    .action-button {
+      padding: 12px 15px;
+      font-size: 15px;
+      font-weight: 500;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      box-sizing: border-box;
+      transition: background-color 0.2s, transform 0.1s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .action-button:active {
+        transform: translateY(1px);
+    }
+    .action-button:disabled {
+      background-color: #adb5bd !important;
+      color: #f8f9fa !important;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    #btnScore { background-color: #28a745; color: white; } /* Green */
+    #btnAnswer { background-color: #ffc107; color: #212529; } /* Amber */
+    #btnDouble { background-color: #007bff; color: white; } /* Blue */
+    #btnRestart { background-color: #dc3545; color: white; } /* Red */
+    #btnHowTo {
+      background-color: #6c757d; /* Grey */
+      color: white;
+      grid-column: span 2;
+    }
+
+
+    /* Modal Styling */
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.65); z-index: 1000;
+    }
+    .modal-content {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background-color: #fff; padding: 30px; border-radius: 12px;
+      width: 90%; max-width: 500px; box-shadow:  0 5px 15px rgba(0, 0, 0, 0.3);
+      max-height: 85vh; overflow-y: auto;
+    }
+    .close-button {
+      position: absolute; top: 15px; right: 20px; font-size: 30px;
+      cursor: pointer; color: #6c757d; background: none; border: none;
+    }
+    .modal-content h3 { margin-top: 0; color: #343a40; font-size: 22px; margin-bottom: 15px;}
+    .modal-content p { font-size: 16px; line-height: 1.6; color: #495057; }
+    .modal-content ul { padding-left: 20px; margin-bottom: 0;}
+    .modal-content li { margin: 12px 0; font-size: 16px; color: #495057;}
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) { /* Wider breakpoint for sidebar adjustments */
+        .sidebar { width: 90px; padding: 15px 5px;}
+        .main { margin-left: 90px; }
+        .coin-display { padding: 6px 10px; font-size: 20px; }
+        .coin-display span { font-size: 18px; }
+        .stake-controls label { font-size: 13px; }
+        .stake-input-wrapper button { width: 24px; height: 24px; font-size: 16px;}
+        .stake-input-wrapper input { width: 36px; height: 24px; font-size: 14px;}
+    }
+
+    @media (max-width: 500px) {
+      .main { padding: 10px; }
+      #btnToggleConfidence, #btnAIGuess { font-size: 12px; padding: 6px 10px; top:10px; right:10px;}
+      #btnAIGuess { top: 45px; }
+      .game-info-area { margin-bottom: 15px; min-height: 60px; }
+      #scoreDisplay, #trialsDisplay { font-size: 16px; }
+      #statusMessage { font-size: 14px;}
+
+      .button-grid { max-width: 300px; gap: 6px; } /* Grid itself smaller */
+      .grid-button { font-size: 18px; border-radius: 6px; }
+      .confidence-text { font-size: 9px; }
+      .footer { max-width: 300px; gap: 10px; }
+      .action-button { font-size: 14px; padding: 10px 12px; border-radius: 5px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="coin-display">🪙<span id="coins">100</span></div>
+    <div class="stake-controls">
+      <label for="stake">Challenge</label>
+      <div class="stake-input-wrapper">
+        <button id="decrementStake" aria-label="Decrement stake">-</button>
+        <input type="number" id="stake" value="10" min="1" step="1">
+        <button id="incrementStake" aria-label="Increment stake">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <button id="btnToggleConfidence">Confidence %</button>
+    <button id="btnAIGuess">AI Next Guess</button>
+    <div class="game-content-wrapper">
+      <div class="game-info-area">
+        <span id="scoreDisplay">Score: ? / 16</span>
+        <span id="trialsDisplay">Trials: 0 / 9</span>
+        <div id="statusMessage">New game started!</div>
+      </div>
+
+      <div id="gridDiv" class="button-grid"></div>
+
+      <div class="footer">
+        <button id="btnScore" class="action-button">Check Score</button>
+        <button id="btnAnswer" class="action-button">Reveal Pattern</button>
+        <button id="btnDouble" class="action-button" disabled>X2</button>
+        <button id="btnRestart" class="action-button">Restart</button>
+        <button id="btnHowTo" class="action-button">How to Play</button>
+      </div>
+    </div>
+     <div id="statusMessageFooter" style="text-align:center; margin-top:10px; font-size:12px; color: #555;"></div>
+  </div>
+
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <button class="close-button" onclick="hideModal()" aria-label="Close modal">×</button>
+      <h3>How to Play</h3>
+      <p>Match the hidden pattern of 'T's and 'F's in the 4x4 grid!</p>
+      <ul>
+        <li>Tap a button to switch its state between 'T' (True) and 'F' (False).</li>
+        <li>"Check Score" shows how many of your guesses match the hidden pattern. You have a maximum of <span id="max-actions-info">9</span> tries per game. Your score and trials taken will appear at the top of the game area.</li>
+        <li>Get a perfect score (16) to win your stake as profit.</li>
+        <li>Lose your Challenge Coins if you fail to get a perfect score within the allowed tries.</li>
+        <li>Use "X2" after a loss to double your next challenge amount.</li>
+        <li><strong>Confidence %:</strong> Tap to see the AI's current belief about each square being 'T'.</li>
+        <li><strong>AI Next Guess:</strong> Tap this to have the AI set the grid to its current best guess. Use this, then "Check Score".</li>
+        <li>"Reveal Pattern" shows the answer but ends the game (you lose).</li>
+      </ul>
+    </div>
+  </div>
+ 
+
+  <script>
+    const N = 16; // Pattern length
+    const MAX_ACTIONS = 9; // Max trials for the player
+
+    let actions = 0; // Player's trials used
+    let patT = Array(N).fill(0); // True hidden pattern
+    let patG = Array(N).fill(0); // Player's current guess on the grid
+    let currentScore = 0;
+    let coins = Math.floor(Math.random() * 101) + 50; // Initial coins
+
+    // DOM Elements
+    const gridDiv = document.getElementById('gridDiv');
+    const stakeInput = document.getElementById('stake');
+    const coinsDisplay = document.getElementById('coins');
+    const scoreDisplayElement = document.getElementById('scoreDisplay');
+    const trialsDisplayElement = document.getElementById('trialsDisplay');
+    const statusMessageElement = document.getElementById('statusMessage');
+    const statusMessageFooterElement = document.getElementById('statusMessageFooter');
+    const maxActionsInfoDisplay = document.getElementById('max-actions-info');
+    const decrementStakeBtn = document.getElementById('decrementStake');
+    const incrementStakeBtn = document.getElementById('incrementStake');
+    const btnAIGuessDOM = document.getElementById('btnAIGuess'); 
+
+
+    const btns = []; // Array of button DOM elements
+    const confidenceSpans = []; // Array of confidence span DOM elements
+
+    // --- Advanced AI State Variables ---
+    let ai_xs = []; 
+    let ai_ys = []; 
+    let ai_evidenceVector = new Array(N).fill(0); 
+    let ai_currentBelief = new Array(N).fill(0); 
+    let ai_totalOnesInTruePattern = -1; 
+    let ai_totalZerosInTruePattern = -1;
+    let ai_pastBeliefs = []; 
+    let ai_initialProbeIndex = 0;
+    let ai_isStuckCounter = 0;
+    const AI_STUCK_THRESHOLD = 2; 
+    const AI_MAX_ITERATIONS_PER_UPDATE = 20; 
+    const AI_EVIDENCE_LEARNING_RATE = 0.05; 
+    const NUM_INITIAL_PROBES = 2 + Math.floor(Math.log2(N)); 
+    let predictorConfidences = new Array(N).fill(0.5); // Holds the displayable 0-1 confidences
+    // --- End Advanced AI State Variables ---
+
+    let showConfidence = false; 
+
+    function initGrid() {
+      statusMessageFooterElement.innerHTML = "By E5";
+      for (let i = 0; i < N; i++) {
+        const container = document.createElement('div');
+        container.className = 'grid-button-container';
+        const btn = document.createElement('button');
+        btn.className = 'grid-button';
+        btn.innerHTML = 'F';
+        btn.onclick = () => toggleButton(i);
+        const confSpan = document.createElement('span');
+        confSpan.className = 'confidence-text';
+        confSpan.style.display = 'none'; 
+        btns.push(btn);
+        confidenceSpans.push(confSpan);
+        container.appendChild(btn);
+        container.appendChild(confSpan);
+        gridDiv.appendChild(container);
+      }
+    }
+
+    function toggleButton(i) {
+      if (actions < MAX_ACTIONS && !btns[i].disabled) {
+        patG[i] = 1 - patG[i];
+        updateGridButtonVisual(i);
+      }
+    }
+    
+    function updateGridButtonVisual(i) {
+        btns[i].innerHTML = patG[i] ? 'T' : 'F';
+        btns[i].className = 'grid-button' + (patG[i] ? ' t' : '');
+    }
+
+    function updateAllGridVisualsFromPatG() {
+        for(let i=0; i<N; i++) {
+            updateGridButtonVisual(i);
+        }
+    }
+
+    function generatePattern() {
+      let sumT;
+      const initialGuessForComparison = new Array(N).fill(0); 
+      do {
+        sumT = 0;
+        for (let i = 0; i < N; i++) {
+          patT[i] = Math.random() > 0.5 ? 1 : 0;
+          if (patT[i] === 1) sumT++;
+        }
+      } while (sumT === 0 || sumT === N || patT.every((val, idx) => val === initialGuessForComparison[idx]));
+    }
+    
+    function checkScore(pattern, guess) {
+        let score = 0;
+        for (let i = 0; i < N; i++) {
+            if (pattern[i] === guess[i]) score++;
+        }
+        return score;
+    }
+
+    // --- ADVANCED AI: Top-Down Inspired Predictor ---
+    
+    function generateAIInitialProbePatternInternal() { 
+        let pattern = new Array(N).fill(0);
+        if (ai_initialProbeIndex === 0) { 
+            // pattern is already all 0s
+        } else if (ai_initialProbeIndex === 1) { 
+            pattern.fill(1);
+        } else {
+            const freqIndex = ai_initialProbeIndex - 2; 
+            if (freqIndex < Math.log2(N)) { 
+                const period = N / Math.pow(2, freqIndex); 
+                for (let i = 0; i < N; i++) {
+                    if (Math.floor(i / (period / 2)) % 2 === 0) {
+                        pattern[i] = 1;
+                    } else {
+                        pattern[i] = 0;
+                    }
+                }
+            } else { 
+                for (let i = 0; i < N; i++) pattern[i] = Math.random() > 0.5 ? 1 : 0;
+            }
+        }
+        ai_initialProbeIndex++;
+        return pattern;
+    }
+
+    function refineAIEvidenceVector() {
+        if (ai_xs.length === 0) return;
+
+        let tempEvidenceVector = [...ai_evidenceVector]; 
+
+        for (let iter = 0; iter < AI_MAX_ITERATIONS_PER_UPDATE; iter++) {
+            let max_grad_this_iter = 0;
+
+            for (let k = 0; k < ai_xs.length; k++) {
+                const x_k = ai_xs[k]; 
+                const y_k_observed_score = ai_ys[k]; 
+
+                let y_k_predicted_score = 0;
+                let temp_predicted_pattern_from_evidence = tempEvidenceVector.map(e => e > 0.0 ? 1 : (e < -0.0 ? 0 : (Math.random() > 0.5 ? 1: 0) ) ); 
+                
+                if(ai_totalOnesInTruePattern !== -1){
+                    const evidenceWithIndices = tempEvidenceVector.map((evidence, index) => [evidence, index]);
+                    evidenceWithIndices.sort((a, b) => b[0] - a[0]);
+                    temp_predicted_pattern_from_evidence.fill(0);
+                    for (let i = 0; i < ai_totalOnesInTruePattern; i++) {
+                        if (i < evidenceWithIndices.length) {
+                            temp_predicted_pattern_from_evidence[evidenceWithIndices[i][1]] = 1;
+                        }
+                    }
+                }
+                y_k_predicted_score = checkScore(temp_predicted_pattern_from_evidence, x_k);
+
+                const error = y_k_observed_score - y_k_predicted_score;
+                
+                if (Math.abs(error) < 0.5 && ai_xs.length > 1) continue; 
+
+                for (let i = 0; i < N; i++) {
+                    let gradient_contribution = 0;
+                    if (x_k[i] === 1) { 
+                        gradient_contribution = error * AI_EVIDENCE_LEARNING_RATE;
+                    } else { 
+                        gradient_contribution = -error * AI_EVIDENCE_LEARNING_RATE; 
+                    }
+                    tempEvidenceVector[i] += gradient_contribution;
+                    if(Math.abs(gradient_contribution) > max_grad_this_iter) max_grad_this_iter = Math.abs(gradient_contribution);
+                }
+            }
+            if(max_grad_this_iter < 0.01 && iter > 3) break; 
+        }
+        ai_evidenceVector = [...tempEvidenceVector];
+    }
+
+    function generateAINextBeliefFromEvidence() { 
+        let nextBelief = new Array(N).fill(0);
+
+        if (ai_totalOnesInTruePattern === -1) { 
+            return generateAIInitialProbePatternInternal(); 
+        }
+
+        const evidenceWithIndices = ai_evidenceVector.map((evidence, index) => [evidence, index]);
+        evidenceWithIndices.sort((a, b) => b[0] - a[0]);
+
+        for (let i = 0; i < ai_totalOnesInTruePattern; i++) {
+            if (i < evidenceWithIndices.length) {
+                const originalIndex = evidenceWithIndices[i][1];
+                nextBelief[originalIndex] = 1;
+            }
+        }
+        return nextBelief;
+    }
+
+    function determineAINextActionAndUpdateBeliefs(playerSubmittedGuess, playerScoreFromPlayerGuess) {
+        if (playerSubmittedGuess && playerScoreFromPlayerGuess !== null) {
+            const existingGuessIndex = ai_xs.findIndex(existingX => existingX.every((val, idx) => val === playerSubmittedGuess[idx]));
+            if (existingGuessIndex === -1) {
+                ai_xs.push([...playerSubmittedGuess]);
+                ai_ys.push(playerScoreFromPlayerGuess);
+            }
+
+            if (playerSubmittedGuess.every(bit => bit === 0) && ai_totalOnesInTruePattern === -1) {
+                ai_totalZerosInTruePattern = playerScoreFromPlayerGuess;
+                ai_totalOnesInTruePattern = N - playerScoreFromPlayerGuess;
+            }
+        }
+
+        refineAIEvidenceVector();
+
+        let newProposedAIBelief;
+        if (ai_initialProbeIndex < NUM_INITIAL_PROBES || ai_totalOnesInTruePattern === -1) {
+            newProposedAIBelief = generateAIInitialProbePatternInternal();
+            if (ai_totalOnesInTruePattern === -1 && ai_initialProbeIndex === 1 && !newProposedAIBelief.every(b=>b===0) ) {
+                 ai_initialProbeIndex = 0; 
+                 newProposedAIBelief = generateAIInitialProbePatternInternal();
+            }
+        } else {
+            newProposedAIBelief = generateAINextBeliefFromEvidence();
+
+            const isEqualToPrevious = ai_pastBeliefs.length > 0 && newProposedAIBelief.every((val, idx) => val === ai_pastBeliefs[ai_pastBeliefs.length - 1]);
+            if (isEqualToPrevious && (!playerScoreFromPlayerGuess || playerScoreFromPlayerGuess < N)) { 
+                ai_isStuckCounter++;
+            } else {
+                ai_isStuckCounter = 0;
+            }
+
+            if (ai_isStuckCounter >= AI_STUCK_THRESHOLD) {
+                let mutatedBelief = [...newProposedAIBelief];
+                const numToMutate = Math.max(1, Math.floor(N / 4)); 
+                for (let k = 0; k < numToMutate; k++) {
+                    const randIdx = Math.floor(Math.random() * N);
+                    mutatedBelief[randIdx] = 1 - mutatedBelief[randIdx]; 
+                }
+                if(ai_totalOnesInTruePattern !== -1) {
+                    let currentOnesInMutated = mutatedBelief.reduce((sum, bit) => sum + bit, 0);
+                    let P = 0; 
+                    while(currentOnesInMutated !== ai_totalOnesInTruePattern && P < N*2) {
+                        const randIdxToFlip = Math.floor(Math.random()*N);
+                        if (currentOnesInMutated > ai_totalOnesInTruePattern && mutatedBelief[randIdxToFlip] === 1) {
+                            mutatedBelief[randIdxToFlip] = 0; currentOnesInMutated--;
+                        } else if (currentOnesInMutated < ai_totalOnesInTruePattern && mutatedBelief[randIdxToFlip] === 0) {
+                            mutatedBelief[randIdxToFlip] = 1; currentOnesInMutated++;
+                        }
+                        P++;
+                    }
+                }
+                newProposedAIBelief = mutatedBelief;
+                ai_isStuckCounter = 0; 
+            }
+        }
+        
+        ai_currentBelief = [...newProposedAIBelief]; 
+        
+        if (ai_pastBeliefs.length > 5) ai_pastBeliefs.shift(); 
+        ai_pastBeliefs.push([...ai_currentBelief]);
+
+        let maxAbsEvidence = 0.01; 
+        for(const e of ai_evidenceVector) maxAbsEvidence = Math.max(maxAbsEvidence, Math.abs(e));
+
+        for(let i=0; i<N; i++){
+            const scaledEvidence = (ai_evidenceVector[i] / maxAbsEvidence) * 2.0; 
+            predictorConfidences[i] = 1 / (1 + Math.exp(-scaledEvidence));
+            predictorConfidences[i] = Math.max(0.01, Math.min(0.99, predictorConfidences[i]));
+        }
+        
+        // Moved displayConfidences call here to ensure it's always updated after predictorConfidences change
+        if (showConfidence) {
+            displayConfidences();
+        }
+    }
+    // --- END ADVANCED AI ---
+
+    function displayConfidences() {
+      confidenceSpans.forEach((span, i) => {
+        span.innerHTML = `${(predictorConfidences[i] * 100).toFixed(0)}%`;
+        span.style.display = showConfidence ? 'block' : 'none'; // Controlled by showConfidence
+      });
+    }
+
+    function toggleConfidenceDisplay() {
+      showConfidence = !showConfidence;
+      displayConfidences(); // Update visibility based on new state
+    }
+    document.getElementById('btnToggleConfidence').onclick = toggleConfidenceDisplay;
+
+    function handleAIGuessButtonClick() { 
+        if (actions >= MAX_ACTIONS || btns[0].disabled) return; 
+        
+        // If it's the very start and AI hasn't even made its first internal probe (all 0s)
+        if (ai_initialProbeIndex === 0 && ai_totalOnesInTruePattern === -1) {
+             determineAINextActionAndUpdateBeliefs(null, null); // This will set ai_currentBelief to the first probe
+        }
+        // Otherwise, ai_currentBelief holds the AI's latest thought from the previous turn or initialization.
+
+        patG = [...ai_currentBelief]; 
+        updateAllGridVisualsFromPatG();
+        statusMessageElement.textContent = "AI set the grid. Now Check Score.";
+        if (showConfidence) { // Ensure confidences reflect the AI's currentBelief if displayed
+            displayConfidences();
+        }
+    }
+    btnAIGuessDOM.onclick = handleAIGuessButtonClick;
+
+
+    function handleScoreCheck() {
+      if (actions < MAX_ACTIONS) {
+        currentScore = checkScore(patT, patG); 
+        actions++;
+        
+        scoreDisplayElement.textContent = `Score: ${currentScore} / ${N}`;
+        trialsDisplayElement.textContent = `Trials: ${actions} / ${MAX_ACTIONS}`;
+        statusMessageElement.textContent = `Checked score: ${currentScore}/${N}.`;
+        
+        determineAINextActionAndUpdateBeliefs([...patG], currentScore); 
+        // displayConfidences() is now called at the end of determineAINextActionAndUpdateBeliefs if showConfidence is true
+
+        if (currentScore === N) endGame(true);
+        else if (actions >= MAX_ACTIONS) endGame(false);
+
+        btnAIGuessDOM.disabled = (actions >= MAX_ACTIONS || currentScore === N);
+      }
+    }
+
+    function revealAnswer() {
+      patG = [...patT]; 
+      updateAllGridVisualsFromPatG();
+      currentScore = N; 
+      endGame(false, true); 
+    }
+
+    function doubleStake() {
+      let currentStake = parseInt(stakeInput.value) || 1;
+      let maxPossibleStake = coins > 0 ? coins : 1; 
+      let newStake = Math.min(currentStake * 2, maxPossibleStake);
+      stakeInput.value = newStake;
+      updateStakeButtonStates();
+      document.getElementById('btnDouble').disabled = true;
+      statusMessageElement.textContent = `Next stake doubled to ${newStake}.`;
+    }
+
+    function endGame(isWin, revealed = false) {
+      scoreDisplayElement.textContent = `Final Score: ${currentScore} / ${N}`;
+      trialsDisplayElement.textContent = `Trials: ${actions} / ${MAX_ACTIONS}`;
+      let stake = parseInt(stakeInput.value) || 1;
+      let message = "";
+      if (isWin) {
+        coins += stake; 
+        message = `Perfect! You won ${stake} coins!`;
+      } else {
+        coins -= stake;
+        message = revealed ? `Pattern revealed. Lost ${stake} coins.` : `Game Over! Lost ${stake} coins.`;
+      }
+      coins = Math.max(0, coins); 
+      coinsDisplay.textContent = coins;
+      statusMessageElement.textContent = message;
+      btns.forEach(btn => btn.disabled = true);
+      document.getElementById('btnScore').disabled = true;
+      document.getElementById('btnAnswer').disabled = true; 
+      btnAIGuessDOM.disabled = true;
+
+
+      if (coins > 0) {
+        document.getElementById('btnDouble').disabled = isWin; 
+        stakeInput.disabled = false;
+        if (parseInt(stakeInput.value) > coins) stakeInput.value = coins;
+        if (parseInt(stakeInput.value) < 1 && coins > 0) stakeInput.value = 1; 
+      } else {
+        document.getElementById('btnDouble').disabled = true;
+        stakeInput.value = 0;
+        stakeInput.disabled = true;
+        statusMessageElement.textContent += " You're out of coins!";
+      }
+      updateStakeButtonStates();
+    }
+
+    function restart() {
+      actions = 0;
+      currentScore = 0; 
+      
+      scoreDisplayElement.textContent = `Score: ? / ${N}`;
+      trialsDisplayElement.textContent = `Trials: 0 / ${MAX_ACTIONS}`;
+      
+      patG.fill(0);
+      updateAllGridVisualsFromPatG();
+      generatePattern();
+
+      ai_xs = [];
+      ai_ys = [];
+      ai_evidenceVector.fill(0);
+      ai_totalOnesInTruePattern = -1;
+      ai_totalZerosInTruePattern = -1;
+      ai_pastBeliefs = [];
+      ai_initialProbeIndex = 0; 
+      ai_isStuckCounter = 0;
+      predictorConfidences.fill(0.5); // Reset displayable confidences
+      determineAINextActionAndUpdateBeliefs(null, null); // Sets ai_currentBelief to first probe & updates predictorConfidences
+
+      // displayConfidences() is now called at the end of determineAINextActionAndUpdateBeliefs if showConfidence is true
+
+      btns.forEach(btn => {
+        btn.disabled = false;
+      });
+
+      document.getElementById('btnScore').disabled = false;
+      document.getElementById('btnAnswer').disabled = false;
+      document.getElementById('btnDouble').disabled = true; 
+      btnAIGuessDOM.disabled = false;
+
+
+      if (coins === 0) {
+        stakeInput.value = 0;
+        stakeInput.disabled = true;
+        document.getElementById('btnScore').disabled = true; 
+        btnAIGuessDOM.disabled = true;
+        statusMessageElement.textContent = "Restarted. You have no coins to play.";
+      } else {
+        stakeInput.disabled = false;
+        let currentStakeVal = parseInt(stakeInput.value);
+        if (isNaN(currentStakeVal) || currentStakeVal <= 0 || currentStakeVal > coins) {
+            stakeInput.value = Math.max(1, Math.min(coins, 10));
+        }
+        statusMessageElement.textContent = "New game started!";
+      }
+      updateStakeButtonStates();
+    }
+
+    function showModal() { document.getElementById('modal').style.display = 'block'; }
+    function hideModal() { document.getElementById('modal').style.display = 'none'; }
+
+    function updateStakeValue(change) {
+        let currentValue = parseInt(stakeInput.value) || 0;
+        let newValue = currentValue + change;
+        if (coins === 0) {
+            stakeInput.value = 0;
+        } else {
+            stakeInput.value = Math.max(1, Math.min(newValue, coins)); 
+        }
+        updateStakeButtonStates();
+    }
+
+    function updateStakeButtonStates() {
+        const val = parseInt(stakeInput.value);
+        const stakeDisabled = stakeInput.disabled; 
+
+        decrementStakeBtn.disabled = stakeDisabled || val <= 1;
+        incrementStakeBtn.disabled = stakeDisabled || val >= coins;
+    }
+
+    stakeInput.addEventListener('input', function() {
+      let value = parseInt(this.value);
+      if (isNaN(value)) {
+        this.value = (coins > 0) ? 1 : 0; 
+      } else if (coins === 0) {
+        this.value = 0;
+      } else {
+        this.value = Math.max(1, Math.min(value, coins)); 
+      }
+      updateStakeButtonStates();
+    });
+
+    decrementStakeBtn.onclick = () => updateStakeValue(-1);
+    incrementStakeBtn.onclick = () => updateStakeValue(1);
+
+    document.getElementById('btnScore').onclick = handleScoreCheck;
+    document.getElementById('btnAnswer').onclick = revealAnswer;
+    document.getElementById('btnDouble').onclick = doubleStake;
+    document.getElementById('btnRestart').onclick = restart;
+    document.getElementById('btnHowTo').onclick = showModal;
+
+    initGrid();
+    coinsDisplay.textContent = coins;
+    maxActionsInfoDisplay.innerHTML = MAX_ACTIONS; 
+    restart(); 
+  </script>
+</body>
+</html>
