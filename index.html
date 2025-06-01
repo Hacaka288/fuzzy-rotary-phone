@@ -1,0 +1,237 @@
+<html>
+  <meta name="viewport" content="width=device-width; initial-scale=1; maximum-scale=1; user-scalable=0;"/>
+  <style>
+    html, body {
+      margin: 0;
+      background-color: floralwhite;
+      height: 100%;
+      width: 100%;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      display: flex;
+      height: 100%;
+    }
+    .sidebar {
+      width: 200px;
+      padding: 20px;
+      background-color: #f0e6 ascended;
+      text-align: center;
+    }
+    .main {
+      flex-grow: 1;
+      padding: 20px;
+      text-align: center;
+    }
+    .title {
+      margin-bottom: 20px;
+    }
+    .button {
+      padding: 20px 27px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      background-color: #ffcccc;
+    }
+    .button.t { background-color: #ccffcc; }
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      max-width: 300px;
+      margin: 20px auto;
+    }
+    .button1 {
+      padding: 10px 20px;
+      background-color: #ffd700;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .button1:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    #coins, #score, #trial {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+    #modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 20px;
+      border: 1px solid #ccc;
+      z-index: 1000;
+      max-width: 400px;
+      text-align: left;
+    }
+  </style>
+  <div class="container">
+    <div class="sidebar">
+      <h3>Your Coins</h3>
+      <p id="coins">Coins: </p>
+      <label for="stake">Challenge Coins:</label>
+      <input type="number" id="stake" value="10" min="1" step="1" style="width: 60px; margin: 10px 0;">
+    </div>
+    <div class="main">
+      <div class="title">
+        <h2>Predict the Pattern</h2>
+      </div>
+      <p id="score">Score: ?</p>
+      <p id="trial">Actions: 0 | Reveals: 0</p>
+      <div class="button-grid" id="gridDiv"></div>
+      <div>
+        <input id="btnScore" class="button1" type="button" value="Check Score" onclick="showScore()">
+        <input id="btnAnswer" class="button1" type="button" value="Reveal Pattern" onclick="revealAnswer()">
+        <input id="btnDouble" class="button1" type="button" value="Double Stake" onclick="doubleStake()" disabled>
+        <input id="btnRestart" class="button1" type="button" value="Restart" onclick="restart()">
+        <input id="btnHowTo" class="button1" type="button" value="How to Play" onclick="showModal()">
+      </div>
+      <div id="modal">
+        <h3>How to Play</h3>
+        <p>Guess the hidden pattern of 'T's and 'F's in the 4x4 grid!</p>
+        <ul>
+          <li>Click a button to switch between 'T' and 'F'.</li>
+          <li>Use "Check Score" to see how many match (15 actions max).</li>
+          <li>Win double your Challenge Coins with a perfect score (16).</li>
+          <li>Lose your Challenge Coins if you don’t succeed in 15 actions.</li>
+          <li>"Double Stake" after a loss to increase your next challenge.</li>
+        </ul>
+        <input type="button" value="Close" onclick="hideModal()">
+      </div>
+    </div>
+  </div>
+  <script>
+    const N = 16;
+    let actions = 0;
+    let reveals = 0;
+    let patT = Array(N).fill(0); // Hidden pattern
+    let patG = Array(N).fill(0); // User guess
+    let score = 0;
+    let coins = Math.floor(Math.random() * 101) + 50; // Random 50-150 coins
+    const btns = [];
+
+    // Initialize grid
+    const gridDiv = document.getElementById('gridDiv');
+    for (let i = 0; i < N; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'button';
+      btn.innerHTML = 'F';
+      btn.onclick = () => toggleButton(i);
+      btns.push(btn);
+      gridDiv.appendChild(btn);
+    }
+
+    // Toggle between T and F
+    function toggleButton(i) {
+      if (actions < 15) {
+        patG[i] = 1 - patG[i];
+        btns[i].innerHTML = patG[i] ? 'T' : 'F';
+        btns[i].className = 'button' + (patG[i] ? ' t' : '');
+      }
+    }
+
+    // Generate hidden pattern, ensuring it’s not all F’s
+    function generatePattern() {
+      do {
+        for (let i = 0; i < N; i++) {
+          patT[i] = Math.random() > 0.5 ? 1 : 0;
+        }
+      } while (patT.every(val => val === 0) || patT.every((val, idx) => val === patG[idx]));
+    }
+
+    // Calculate score
+    function checkScore() {
+      score = patG.reduce((acc, val, i) => acc + (val === patT[i] ? 1 : 0), 0);
+    }
+
+    // Show score temporarily
+    function showScore() {
+      if (actions < 15) {
+        checkScore();
+        document.getElementById('score').innerHTML = 'Score: ' + score;
+        setTimeout(hideScore, 1000);
+      }
+    }
+
+    // Hide score and update actions
+    function hideScore() {
+      actions++;
+      document.getElementById('score').innerHTML = 'Score: ?';
+      updateTrial();
+      if (actions >= 15) endGame();
+    }
+
+    // Reveal the hidden pattern
+    function revealAnswer() {
+      reveals++;
+      for (let i = 0; i < N; i++) {
+        btns[i].innerHTML = patT[i] ? 'T' : 'F';
+        btns[i].className = 'button' + (patT[i] ? ' t' : '');
+      }
+      setTimeout(endGame, 1000);
+    }
+
+    // Double the stake
+    function doubleStake() {
+      let stake = parseInt(document.getElementById('stake').value);
+      let newStake = Math.min(stake * 2, coins);
+      document.getElementById('stake').value = newStake;
+    }
+
+    // End game and update coins
+    function endGame() {
+      checkScore();
+      let stake = parseInt(document.getElementById('stake').value);
+      if (score === N) {
+        coins += stake * 2;
+      } else {
+        coins -= stake;
+      }
+      document.getElementById('coins').innerHTML = 'Coins: ' + coins;
+      document.getElementById('score').innerHTML = 'Game Over. Final Score: ' + score;
+      btns.forEach(btn => btn.disabled = true);
+      document.getElementById('btnScore').disabled = true;
+      document.getElementById('btnAnswer').disabled = true;
+      document.getElementById('btnDouble').disabled = false;
+    }
+
+    // Restart game
+    function restart() {
+      actions = 0;
+      reveals = 0;
+      patG.fill(0);
+      generatePattern();
+      for (let i = 0; i < N; i++) {
+        btns[i].innerHTML = 'F';
+        btns[i].className = 'button';
+        btns[i].disabled = false;
+      }
+      updateTrial();
+      document.getElementById('score').innerHTML = 'Score: ?';
+      document.getElementById('btnScore').disabled = false;
+      document.getElementById('btnAnswer').disabled = false;
+      document.getElementById('btnDouble').disabled = true;
+      let stake = parseInt(document.getElementById('stake').value);
+      if (stake > coins) document.getElementById('stake').value = coins || 1;
+    }
+
+    // Update actions and reveals display
+    function updateTrial() {
+      document.getElementById('trial').innerHTML = 'Actions: ' + actions + ' | Reveals: ' + reveals;
+    }
+
+    // Modal controls
+    function showModal() { document.getElementById('modal').style.display = 'block'; }
+    function hideModal() { document.getElementById('modal').style.display = 'none'; }
+
+    // Start the game
+    document.getElementById('coins').innerHTML = 'Coins: ' + coins;
+    restart();
+  </script>
+</html>
