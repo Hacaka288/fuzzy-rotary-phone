@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+  <title>Pattern Predictor Game - Advanced AI v6.6 (Debug Autoplay Bias)</title>
+  <style>
+    body {
+      display: flex;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f2f5;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 130px;
+      height: 100%;
+      background-color: #e9ecef;
+      padding: 20px 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    .coin-display {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2a2a2a;
+      margin-bottom: 20px;
+      background-color: #ffc107;
+      padding: 8px 15px;
+      border-radius: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .coin-display span {
+      margin-left: 5px;
+      font-size: 20px;
+    }
+
+    .sidebar-control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 15px;
+      flex-shrink: 0;
+    }
+    .sidebar-control-group label {
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #333;
+      font-weight: 500;
+      text-align: center;
+    }
+    .value-input-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .value-input-wrapper button {
+      width: 28px;
+      height: 28px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 1px solid #ccc;
+      background-color: #f8f9fa;
+      cursor: pointer;
+      color: #333;
+      line-height: 1;
+    }
+    .value-input-wrapper button:hover {
+      background-color: #e2e6ea;
+    }
+    .value-input-wrapper button:first-child {
+      border-radius: 5px 0 0 5px;
+    }
+    .value-input-wrapper button:last-child {
+      border-radius: 0 5px 5px 0;
+    }
+    .value-input-wrapper input {
+      height: 28px;
+      padding: 5px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-left: none;
+      border-right: none;
+      border-radius: 0;
+      text-align: center;
+      box-sizing: border-box;
+      -moz-appearance: textfield;
+    }
+    #stake, #iterations { width: 40px; }
+    #samples { width: 50px; }
+
+    .value-input-wrapper input::-webkit-outer-spin-button,
+    .value-input-wrapper input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    #btnAutoPlay {
+        background-color: #6f42c1;
+        color: white;
+        padding: 7px 12px;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        border: none;
+        width: 90%;
+        margin-top: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    #btnAutoPlay:hover {
+        background-color: #5a3e8d;
+    }
+    #btnAutoPlay.active {
+        background-color: #dc3545;
+    }
+     #btnAutoPlay.active:hover {
+        background-color: #c82333;
+    }
+    #btnToggleGraph {
+        background-color: #17a2b8;
+        color: white;
+        padding: 5px 8px;
+        font-size: 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        border: none;
+        width: 40px;
+        height: 40px;
+        margin-top: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #btnToggleGraph:hover {
+        background-color: #138496;
+    }
+     #btnToggleGraph.active {
+        background-color: #138496;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-left: 130px;
+      padding: 15px;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    .game-content-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 450px;
+    }
+    #btnToggleConfidence {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 7px 12px;
+      font-size: 13px;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 5;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    #btnToggleConfidence:hover {
+      background-color: #218838;
+    }
+    #btnAIGuess {
+      position: absolute;
+      top: 55px;
+      right: 15px;
+      background-color: #17a2b8;
+      color: white;
+      border: none;
+      padding: 7px 12px;
+      font-size: 13px;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 5;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    #btnAIGuess:hover {
+      background-color: #138496;
+    }
+    #btnAIGuess:disabled {
+      background-color: #adb5bd !important;
+      cursor: not-allowed;
+    }
+    .game-info-area {
+      text-align: center;
+      margin-bottom: 20px;
+      min-height: 65px;
+      width: 100%;
+    }
+    #scoreDisplay, #trialsDisplay {
+      font-size: 18px;
+      font-weight: 600;
+      color: #343a40;
+      display: block;
+      margin-bottom: 4px;
+    }
+    #statusMessage {
+      font-size: 15px;
+      color: #495057;
+      margin-top: 8px;
+      min-height: 1.3em;
+      font-style: italic;
+    }
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: 100%;
+      max-width: 340px;
+      margin-bottom: 25px;
+    }
+    .grid-button-container {
+      position: relative;
+    }
+    .grid-button {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #ff7675;
+      color: white;
+      transition: background-color 0.2s, transform 0.1s;
+      box-sizing: border-box;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .grid-button:active {
+      transform: scale(0.95);
+    }
+    .grid-button.t {
+      background-color: #55efc4;
+      color: #2d3436;
+    }
+    .confidence-text {
+      position: absolute;
+      bottom: 3px;
+      right: 5px;
+      font-size: 10px;
+      color: #2d3436;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 1px 4px;
+      border-radius: 3px;
+      pointer-events: none;
+    }
+    .footer {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+      max-width: 380px;
+    }
+    .action-button {
+      padding: 12px 15px;
+      font-size: 15px;
+      font-weight: 500;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      box-sizing: border-box;
+      transition: background-color 0.2s, transform 0.1s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .action-button:active {
+      transform: translateY(1px);
+    }
+    .action-button:disabled {
+      background-color: #adb5bd !important;
+      color: #f8f9fa !important;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    #btnScore { background-color: #28a745; color: white; }
+    #btnAnswer { background-color: #ffc107; color: #212529; }
+    #btnDouble { background-color: #007bff; color: white; }
+    #btnRestart { background-color: #dc3545; color: white; }
+    #btnHowTo {
+      background-color: #6c757d;
+      color: white;
+      grid-column: span 2;
+    }
+
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.65); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .modal-content {
+      position: relative;
+      transform: none; top: auto; left: auto;
+      background-color: #fff;
+      border-radius: 12px;
+      width: 90%;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      max-height: 90vh; overflow-y: auto;
+      color: #495057;
+    }
+    #howToModal .modal-content {
+        padding: 30px; max-width: 500px;
+    }
+    .close-button {
+      position: absolute; top: 10px; right: 15px; font-size: 28px;
+      cursor: pointer; color: #6c757d; background: none; border: none;
+      line-height: 1; padding: 0;
+    }
+    .modal-content h3 { margin-top: 0; color: #343a40; font-size: 22px; margin-bottom: 20px; text-align: center;}
+    .modal-content p { font-size: 16px; line-height: 1.6; }
+    .modal-content ul { padding-left: 20px; margin-bottom: 0;}
+    .modal-content li { margin: 10px 0; font-size: 15px; }
+
+    #autoplayModal .modal-content {
+        padding: 25px 30px;
+        max-width: 420px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+    }
+    #autoplayModal h3 {
+        color: #6f42c1;
+        font-weight: 600;
+        border-bottom: 2px solid #6f42c1;
+        padding-bottom: 10px;
+    }
+    #autoplayModal .modal-form-group {
+        margin-bottom: 18px;
+    }
+    #autoplayModal .modal-form-group label {
+        display: block;
+        font-size: 14px;
+        color: #495057;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+    #autoplayModal .modal-form-group input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 15px;
+        background-color: #fff;
+        color: #495057;
+    }
+    #autoplayModal .modal-form-group input[type="number"]:focus {
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    #autoplayModal .modal-form-group input[type="number"]::-webkit-outer-spin-button,
+    #autoplayModal .modal-form-group input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none; margin: 0;
+    }
+    #autoplayModal .modal-form-group input[type="number"] { -moz-appearance: textfield; }
+
+    #autoplayModal .modal-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+    }
+    #autoplayModal .modal-actions button {
+        padding: 12px 25px;
+        font-size: 16px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    #btnStartAutoplay { background-color: #28a745; color: white; }
+    #btnStartAutoplay:hover { background-color: #218838; }
+    #btnCancelAutoplay { background-color: #6c757d; color: white; }
+    #btnCancelAutoplay:hover { background-color: #5a6268; }
+    .autoplay-current-coins {
+        text-align: center;
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: #007bff;
+        font-weight: 600;
+        background-color: #e9ecef;
+        padding: 8px;
+        border-radius: 6px;
+    }
+    #autoplayStatus {
+        font-size: 12px;
+        color: #17a2b8;
+        text-align: center;
+        margin-top: 5px;
+        min-height: 2.4em;
+        line-height: 1.2em;
+        font-weight: 500;
+    }
+
+    #autoplayGraphPanel {
+        display: none;
+        position: fixed;
+        bottom: 15px;
+        right: 15px;
+        width: 320px;
+        height: 280px;
+        background-color: #ffffff;
+        border: 1px solid #adb5bd;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 900;
+        padding: 15px;
+        box-sizing: border-box;
+        flex-direction: column;
+        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+    }
+     #autoplayGraphPanel.visible {
+        display: flex;
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    #coinHistoryCanvas {
+        width: 100%;
+        height: 160px;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 10px;
+    }
+    .autoplay-graph-stats {
+        font-size: 12px;
+        color: #495057;
+        line-height: 1.6;
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+    .autoplay-graph-stats p {
+        margin: 3px 0;
+    }
+    .autoplay-graph-stats strong {
+        color: #212529;
+        font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 100px; padding: 15px 5px;}
+      .main { margin-left: 100px; }
+      .coin-display { padding: 6px 10px; font-size: 20px; margin-bottom: 15px; }
+      .coin-display span { font-size: 18px; }
+      .sidebar-control-group label { font-size: 12px; margin-bottom: 5px; }
+      .value-input-wrapper button { width: 24px; height: 24px; font-size: 16px;}
+      .value-input-wrapper input { height: 24px; font-size: 13px;}
+      #stake, #iterations { width: 36px; }
+      #samples { width: 45px; }
+      #autoplayGraphPanel {
+          width: calc(100vw - 120px);
+          left: 110px;
+          bottom: 5px; right: 5px;
+          height: 220px;
+      }
+      #coinHistoryCanvas { height: 130px; }
+    }
+    @media (max-width: 500px) {
+      .main { padding: 10px; }
+      #btnToggleConfidence, #btnAIGuess { font-size: 12px; padding: 6px 10px; top:10px; right:10px;}
+      #btnAIGuess { top: 45px; }
+      .game-info-area { margin-bottom: 15px; min-height: 60px; }
+      #scoreDisplay, #trialsDisplay { font-size: 16px; }
+      #statusMessage { font-size: 14px;}
+      .button-grid { max-width: 300px; gap: 6px; }
+      .grid-button { font-size: 18px; border-radius: 6px; }
+      .confidence-text { font-size: 9px; }
+      .footer { max-width: 300px; gap: 10px; }
+      .action-button { font-size: 14px; padding: 10px 12px; border-radius: 5px;}
+      #autoplayModal .modal-content { padding: 15px 20px; max-width: 90%; }
+      #autoplayModal .modal-form-group label { font-size: 13px; }
+      #autoplayModal .modal-form-group input[type="number"] { font-size: 13px; padding: 6px; }
+      #autoplayGraphPanel {
+          left: 5px;
+          width: calc(100vw - 10px);
+          height: 200px;
+          padding: 10px;
+      }
+      #coinHistoryCanvas { height: 110px; }
+      .autoplay-graph-stats { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="coin-display">🪙<span id="coins">100</span></div>
+
+    <div class="sidebar-control-group">
+      <label for="stake">Challenge</label>
+      <div class="value-input-wrapper">
+        <button id="decrementStake" aria-label="Decrement stake">-</button>
+        <input type="number" id="stake" value="10" min="1" step="1">
+        <button id="incrementStake" aria-label="Increment stake">+</button>
+      </div>
+    </div>
+
+    <div class="sidebar-control-group">
+      <label for="iterations">AI Iterations</label>
+      <div class="value-input-wrapper">
+        <button id="decrementIterations" aria-label="Decrement iterations">-</button>
+        <input type="number" id="iterations" value="10" min="10" step="1">
+        <button id="incrementIterations" aria-label="Increment iterations">+</button>
+      </div>
+    </div>
+
+    <div class="sidebar-control-group">
+      <label for="samples">AI Samples</label>
+      <div class="value-input-wrapper">
+        <button id="decrementSamples" aria-label="Decrement samples">-</button>
+        <input type="number" id="samples" value="3000" min="3000" step="100">
+        <button id="incrementSamples" aria-label="Increment samples">+</button>
+      </div>
+    </div>
+    <button id="btnAutoPlay">Auto Play</button>
+    <button id="btnToggleGraph" title="Toggle Autoplay Stats Graph">📈</button>
+    <div id="autoplayStatus"></div>
+  </div>
+
+  <div class="main">
+    <button id="btnToggleConfidence">Confidence %</button>
+    <button id="btnAIGuess">AI Next Guess</button>
+    <div class="game-content-wrapper">
+      <div class="game-info-area">
+        <span id="scoreDisplay">Score: ? / 16</span>
+        <span id="trialsDisplay">Trials: 0 / 7</span>
+        <div id="statusMessage">New game started!</div>
+      </div>
+
+      <div id="gridDiv" class="button-grid"></div>
+
+      <div class="footer">
+        <button id="btnScore" class="action-button">Check Score</button>
+        <button id="btnAnswer" class="action-button">Reveal Pattern</button>
+        <button id="btnDouble" class="action-button" disabled>X2</button>
+        <button id="btnRestart" class="action-button">Restart</button>
+        <button id="btnHowTo" class="action-button">How to Play</button>
+      </div>
+    </div>
+    <div id="statusMessageFooter" style="text-align:center; margin-top:10px; font-size:12px; color: #555;"></div>
+  </div>
+
+  <div id="howToModal" class="modal">
+    <div class="modal-content">
+      <button class="close-button" onclick="hideModal('howToModal')" aria-label="Close modal">×</button>
+      <h3>How to Play</h3>
+      <p>Match the hidden pattern of 'T's and 'F's in the 4x4 grid!</p>
+      <ul>
+        <li>Tap a button to switch its state between 'T' (True) and 'F' (False).</li>
+        <li>"Check Score" shows how many of your guesses match the hidden pattern. You have a maximum of <span id="max-actions-info">9</span> tries per game.</li>
+        <li>Get a perfect score (16) to win your stake as profit. Lose your stake otherwise.</li>
+        <li>Use "X2" after a loss to double your next challenge amount.</li>
+        <li><strong>Confidence %:</strong> Toggle AI's belief about each square being 'T'.</li>
+        <li><strong>AI Next Guess:</strong> AI sets the grid to its best guess (Entropy method).</li>
+        <li>"Reveal Pattern" ends the game (loss).</li>
+        <li><strong>AI Iterations/Samples:</strong> Adjust AI's computational power for manual play (Min Iterations: <span id="min-iterations-info"></span>, Min Samples: <span id="min-samples-info"></span>). All this can affect perfomance</li>
+        <li><strong>Auto Play Button:</strong> Configure and run automated AI play sessions.</li>
+        <li><strong>Graph Button (📈):</strong> Shows/hides a real-time graph of coin balance and stats during autoplay.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="autoplayModal" class="modal">
+    <div class="modal-content">
+        <button class="close-button" onclick="hideModal('autoplayModal')" aria-label="Close Autoplay modal">×</button>
+        <h3>Autoplay Settings</h3>
+        <div class="autoplay-current-coins">Current Coins: <span id="autoplayCurrentCoinsDisplay">100</span></div>
+        <div class="modal-form-group">
+            <label for="autoplayStake">Stake per Game</label>
+            <input type="number" id="autoplayStake" value="10" min="1">
+        </div>
+        <div class="modal-form-group">
+            <label for="autoplayIterations">AI Iterations (for Autoplay)</label>
+            <input type="number" id="autoplayIterations" value="10" min="10">
+        </div>
+        <div class="modal-form-group">
+            <label for="autoplaySamples">AI Samples (for Autoplay)</label>
+            <input type="number" id="autoplaySamples" value="3000" min="3000">
+        </div>
+        <div class="modal-form-group">
+            <label for="autoplayLossMultiplier">Increase Stake by X on Loss</label>
+            <input type="number" id="autoplayLossMultiplier" value="1" min="1" step="0.1">
+        </div>
+        <div class="modal-form-group">
+            <label for="autoplayNumGames">Number of Games to Play</label>
+            <input type="number" id="autoplayNumGames" value="10" min="1">
+        </div>
+        <div class="modal-form-group">
+            <label for="autoplayWinTarget">Stop if Coins Reach (0 = ignore)</label>
+            <input type="number" id="autoplayWinTarget" value="0" min="0">
+        </div>
+        <div class="modal-form-group">
+            <label for="autoplayLossLimit">Stop if Coins Drop To (0 = ignore)</label>
+            <input type="number" id="autoplayLossLimit" value="0" min="0">
+        </div>
+        <div class="modal-actions">
+            <button id="btnStartAutoplay">Start Autoplay</button>
+            <button id="btnCancelAutoplay" onclick="hideModal('autoplayModal')">Cancel</button>
+        </div>
+    </div>
+  </div>
+
+  <div id="autoplayGraphPanel">
+      <canvas id="coinHistoryCanvas"></canvas>
+      <div class="autoplay-graph-stats">
+          <p>Games: <strong id="statGamesPlayed">0/0</strong></p>
+          <p>Wins: <strong id="statWins">0</strong> | Losses: <strong id="statLosses">0</strong> | Win Rate: <strong id="statWinRate">-</strong></p>
+          <p>P/L: <strong id="statProfitLoss">0</strong> Coins</p>
+          <p>Avg. Trials/Win: <strong id="statAvgTrialsWin">-</strong></p>
+          <p>Avg. Trials/Loss: <strong id="statAvgTrialsLoss">-</strong></p>
+      </div>
+  </div>
+
+  <script>
+    const N = 16;
+    const MAX_ACTIONS = 7;
+    const AUTOPLAY_TRIAL_DELAY = 30;
+
+    let actions = 0;
+    let patT = Array(N).fill(0);
+    let patG = Array(N).fill(0);
+    let currentScore = 0; // This will store the score of the LATEST check for the current game.
+    let coins = Math.floor(Math.random() * 101) + 50;
+
+    const dom = {
+        gridDiv: document.getElementById('gridDiv'),
+        stakeInput: document.getElementById('stake'),
+        coinsDisplay: document.getElementById('coins'),
+        scoreDisplay: document.getElementById('scoreDisplay'),
+        trialsDisplay: document.getElementById('trialsDisplay'),
+        statusMessage: document.getElementById('statusMessage'),
+        statusMessageFooter: document.getElementById('statusMessageFooter'),
+        maxActionsInfo: document.getElementById('max-actions-info'),
+        decrementStakeBtn: document.getElementById('decrementStake'),
+        incrementStakeBtn: document.getElementById('incrementStake'),
+        btnAIGuess: document.getElementById('btnAIGuess'),
+        btnAutoPlay: document.getElementById('btnAutoPlay'),
+        autoplayStatus: document.getElementById('autoplayStatus'),
+        btnToggleGraph: document.getElementById('btnToggleGraph'),
+        iterationsInput: document.getElementById('iterations'),
+        decrementIterationsBtn: document.getElementById('decrementIterations'),
+        incrementIterationsBtn: document.getElementById('incrementIterations'),
+        samplesInput: document.getElementById('samples'),
+        decrementSamplesBtn: document.getElementById('decrementSamples'),
+        incrementSamplesBtn: document.getElementById('incrementSamples'),
+        minIterationsInfo: document.getElementById('min-iterations-info'), // Will now find the element
+        minSamplesInfo: document.getElementById('min-samples-info'),     // Will now find the element
+        howToModal: document.getElementById('howToModal'),
+        autoplayModal: document.getElementById('autoplayModal'),
+        autoplayCurrentCoinsDisplay: document.getElementById('autoplayCurrentCoinsDisplay'),
+        autoplayStakeInput: document.getElementById('autoplayStake'),
+        autoplayIterationsInput: document.getElementById('autoplayIterations'),
+        autoplaySamplesInput: document.getElementById('autoplaySamples'),
+        autoplayLossMultiplierInput: document.getElementById('autoplayLossMultiplier'),
+        autoplayNumGamesInput: document.getElementById('autoplayNumGames'),
+        autoplayWinTargetInput: document.getElementById('autoplayWinTarget'),
+        autoplayLossLimitInput: document.getElementById('autoplayLossLimit'),
+        btnStartAutoplay: document.getElementById('btnStartAutoplay'),
+        btnToggleConfidence: document.getElementById('btnToggleConfidence'),
+        autoplayGraphPanel: document.getElementById('autoplayGraphPanel'),
+        coinHistoryCanvas: document.getElementById('coinHistoryCanvas'),
+        statGamesPlayed: document.getElementById('statGamesPlayed'),
+        statWins: document.getElementById('statWins'),
+        statLosses: document.getElementById('statLosses'),
+        statWinRate: document.getElementById('statWinRate'),
+        statProfitLoss: document.getElementById('statProfitLoss'),
+        statAvgTrialsWin: document.getElementById('statAvgTrialsWin'),
+        statAvgTrialsLoss: document.getElementById('statAvgTrialsLoss'),
+    };
+
+    const btns = [];
+    const confidenceSpans = [];
+
+    let ai_xs = [], ai_ys = [], ai_samples = [], ai_weights = [];
+    let ai_currentBelief = new Array(N).fill(0);
+    let ai_totalOnesInTruePattern = -1, ai_totalZerosInTruePattern = -1;
+    let ai_pastBeliefs = [], ai_isStuckCounter = 0;
+    const AI_STUCK_THRESHOLD = 3;
+
+    const MIN_ITERATIONS_GLOBAL = 10;
+    const MIN_SAMPLES_GLOBAL = 3000;
+    let currentNumSamples = MIN_SAMPLES_GLOBAL;
+    let currentAiMaxIterations = MIN_ITERATIONS_GLOBAL;
+
+    let predictorConfidences = new Array(N).fill(0.5);
+
+    const MAX_ENTROPY_CANDIDATES_BASE = 10;
+    const MAX_ENTROPY_CANDIDATES_PER_FLIP_TYPE = N/2;
+    const MAX_ENTROPY_RANDOM_CANDIDATES = 5;
+
+    let showConfidence = false;
+
+    let isAutoplaying = false;
+    let autoplaySettings = {};
+    let autoplayGamesPlayedThisSession = 0;
+    let autoplayActionsInCurrentGame = 0;
+    let autoplayCurrentGameStake = 0;
+    let autoplayLastGameWasLoss = false;
+    let autoplayTimeoutId = null;
+    let autoplayInitialCoins = 0;
+    let autoplayWinsThisSession = 0;
+    let autoplayLossesThisSession = 0;
+    let autoplayTotalTrialsForWins = 0;
+    let autoplayTotalTrialsForLosses = 0;
+    let coinHistory = [];
+
+
+    function initGrid() {
+      dom.statusMessageFooter.innerHTML = "By E5";
+      dom.gridDiv.innerHTML = '';
+      btns.length = 0;
+      confidenceSpans.length = 0;
+      for (let i = 0; i < N; i++) {
+        const container = document.createElement('div');
+        container.className = 'grid-button-container';
+        const btn = document.createElement('button');
+        btn.className = 'grid-button';
+        btn.innerHTML = 'F';
+        btn.onclick = () => toggleButton(i);
+
+        const confSpan = document.createElement('span');
+        confSpan.className = 'confidence-text';
+        confSpan.style.display = 'none';
+
+        btns.push(btn);
+        confidenceSpans.push(confSpan);
+
+        container.appendChild(btn);
+        container.appendChild(confSpan);
+        dom.gridDiv.appendChild(container);
+      }
+    }
+
+    function toggleButton(i) {
+      if (isAutoplaying || actions >= MAX_ACTIONS || (btns.length > i && btns[i].disabled)) return;
+      patG[i] = 1 - patG[i];
+      updateGridButtonVisual(i);
+    }
+
+    function updateGridButtonVisual(i) {
+      if (btns[i]) {
+        btns[i].innerHTML = patG[i] ? 'T' : 'F';
+        btns[i].className = 'grid-button' + (patG[i] ? ' t' : '');
+      }
+    }
+
+    function updateAllGridVisualsFromPatG() {
+      for (let i = 0; i < N; i++) {
+        updateGridButtonVisual(i);
+      }
+    }
+
+    function generatePattern() {
+      let sumT;
+      // const initialGuessForComparison = new Array(N).fill(0); // This was redundant
+      let attempts = 0;
+      do {
+        attempts++;
+        sumT = 0;
+        for (let i = 0; i < N; i++) {
+          patT[i] = Math.random() > 0.5 ? 1 : 0;
+          if (patT[i] === 1) sumT++;
+        }
+        if (attempts > 100) {
+            console.warn("generatePattern took too many attempts, forcing break to a non-uniform pattern.");
+            // Force a pattern that is not all zeros or all ones
+            patT.fill(0);
+            patT[0] = 1; // Ensures not all zeros
+            if (N > 1) patT[1] = (N % 2 === 0 ? 1 : 0); // Make it a bit more varied if N > 1
+            sumT = patT.reduce((acc, val) => acc + val, 0);
+            if (sumT === 0) { patT[0]=1; sumT=1;} // Final safety for N=1 case, or if above logic failed
+            if (sumT === N && N > 0) { patT[0]=0; sumT = N-1;} // Final safety
+            break;
+        }
+      } while (sumT === 0 || sumT === N); // Loop if pattern is all 0s or all 1s
+      // console.log("NEW TRUE PATTERN (patT) GENERATED:", patT.join(''), "SumT:", sumT);
+    }
+
+    function checkScore(pattern, guess) {
+      if (!pattern || !guess || pattern.length !== N || guess.length !== N) { return 0; }
+      let score = 0;
+      for (let i = 0; i < N; i++) if (pattern[i] === guess[i]) score++;
+      return score;
+    }
+
+    function initializeSamples(numSamplesToUse) {
+      ai_samples = [];
+      ai_weights = [];
+      for (let s = 0; s < numSamplesToUse; s++) {
+        const sample = new Array(N);
+        let onesCount = ai_totalOnesInTruePattern;
+        if (onesCount === -1) {
+          for (let i = 0; i < N; i++) sample[i] = Math.random() > 0.5 ? 1 : 0;
+        } else {
+          sample.fill(0);
+          const indices = [...Array(N).keys()];
+          for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+          }
+          for (let i = 0; i < onesCount; i++) sample[indices[i]] = 1;
+        }
+        ai_samples.push(sample);
+        ai_weights.push(1 / numSamplesToUse);
+      }
+    }
+
+    function refineAISamples(mcIterationsToUse, numSamplesTarget) {
+      if (ai_xs.length === 0 || ai_samples.length === 0) return;
+      for (let iter = 0; iter < mcIterationsToUse; iter++) {
+        let totalWeight = 0;
+        for (let s = 0; s < ai_samples.length; s++) {
+          let logLikelihood = 0;
+          for (let k = 0; k < ai_xs.length; k++) {
+            const error = Math.abs(ai_ys[k] - checkScore(ai_samples[s], ai_xs[k]));
+            logLikelihood += -error * error;
+          }
+          ai_weights[s] = Math.exp(logLikelihood);
+          totalWeight += ai_weights[s];
+        }
+        if (totalWeight > 0 && isFinite(totalWeight)) {
+          for (let s = 0; s < ai_samples.length; s++) ai_weights[s] /= totalWeight;
+        } else {
+          if (ai_samples.length > 0) ai_weights.fill(1 / ai_samples.length);
+        }
+        const newSamples = [];
+        if (ai_samples.length > 0) {
+            const cumulativeWeights = [];
+            let sum = 0;
+            for (let s = 0; s < ai_samples.length; s++) {
+              sum += ai_weights[s]; cumulativeWeights.push(sum);
+            }
+            if (cumulativeWeights.length > 0) cumulativeWeights[cumulativeWeights.length - 1] = 1.0;
+            for (let s = 0; s < numSamplesTarget; s++) {
+              const r = Math.random();
+              let idx = 0;
+              let searchLimit = Math.min(ai_samples.length - 1, numSamplesTarget -1);
+              if(searchLimit < 0) searchLimit = 0;
+              while (idx < searchLimit && r > cumulativeWeights[idx]) idx++;
+              const baseSample = [...ai_samples[idx]];
+              if (Math.random() < 0.15 || iter < 2) {
+                 const i = Math.floor(Math.random() * N);
+                if (ai_totalOnesInTruePattern !== -1) {
+                    const j = Math.floor(Math.random() * N);
+                    if (baseSample[i] !== baseSample[j]) [baseSample[i], baseSample[j]] = [baseSample[j], baseSample[i]];
+                    else baseSample[i] = 1 - baseSample[i];
+                } else baseSample[i] = 1 - baseSample[i];
+              }
+              if (ai_totalOnesInTruePattern !== -1) {
+                let currentOnes = baseSample.reduce((c, bit) => c + bit, 0);
+                let attempts = 0;
+                while(currentOnes !== ai_totalOnesInTruePattern && attempts < N*2) {
+                    const k = Math.floor(Math.random() * N);
+                    if(currentOnes > ai_totalOnesInTruePattern && baseSample[k] === 1) { baseSample[k] = 0; currentOnes--; }
+                    else if (currentOnes < ai_totalOnesInTruePattern && baseSample[k] === 0) { baseSample[k] = 1; currentOnes++; }
+                    attempts++;
+                }
+              }
+              newSamples.push(baseSample);
+            }
+        }
+        ai_samples = newSamples.length > 0 ? newSamples : ai_samples;
+        if (ai_samples.length > 0) ai_weights.fill(1 / ai_samples.length);
+      }
+      if (ai_samples.length > 0) {
+        for (let i = 0; i < N; i++) {
+            let prob = 0;
+            for (let s = 0; s < ai_samples.length; s++) prob += ai_samples[s][i];
+            predictorConfidences[i] = prob / ai_samples.length;
+          }
+      } else predictorConfidences.fill(0.5);
+    }
+
+    function generateEntropyBasedGuess() {
+        const stringifiedSamples = new Set();
+        const uniqueConsistentSamples = [];
+        for (const sample of ai_samples) {
+            let consistent = true;
+            for (let k = 0; k < ai_xs.length; k++) {
+                if (checkScore(sample, ai_xs[k]) !== ai_ys[k]) { consistent = false; break; }
+            }
+            if (consistent) {
+                const sStr = sample.join('');
+                if (!stringifiedSamples.has(sStr)) { uniqueConsistentSamples.push(sample); stringifiedSamples.add(sStr); }
+            }
+        }
+        if (uniqueConsistentSamples.length === 0) {
+            const fallbackGuess = new Array(N);
+            if (ai_totalOnesInTruePattern !== -1) {
+                fallbackGuess.fill(0);
+                let tempIndices = Array.from({length: N}, (_, i) => i);
+                for (let i = N - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [tempIndices[i], tempIndices[j]] = [tempIndices[j], tempIndices[i]];
+                }
+                for(let i=0; i<ai_totalOnesInTruePattern; ++i) fallbackGuess[tempIndices[i]] = 1;
+            } else for (let i = 0; i < N; i++) fallbackGuess[i] = Math.random() > 0.5 ? 1 : 0;
+            return fallbackGuess;
+        }
+        if (uniqueConsistentSamples.length === 1) return [...uniqueConsistentSamples[0]];
+        const candidateGuessesSet = new Set();
+        if (ai_totalOnesInTruePattern === -1) {
+            candidateGuessesSet.add(new Array(N).fill(0).join(''));
+            candidateGuessesSet.add(new Array(N).fill(1).join(''));
+        }
+        let baseForFlips = predictorConfidences.map(p => p > 0.5 ? 1 : 0);
+        candidateGuessesSet.add(baseForFlips.join(''));
+        for (let i = 0; i < N && candidateGuessesSet.size < MAX_ENTROPY_CANDIDATES_BASE + MAX_ENTROPY_CANDIDATES_PER_FLIP_TYPE; i++) {
+            const candidate = [...baseForFlips]; candidate[i] = 1 - candidate[i];
+            candidateGuessesSet.add(candidate.join(''));
+        }
+        for(let i=0; i < MAX_ENTROPY_RANDOM_CANDIDATES && i < uniqueConsistentSamples.length; ++i) {
+            candidateGuessesSet.add(uniqueConsistentSamples[i].join(''));
+        }
+        let bestGuessPattern = null;
+        let minExpectedEntropy = Infinity;
+        candidateGuessesSet.forEach(guessStr => {
+            const guessArray = guessStr.split('').map(Number);
+            let expectedEntropyForThisGuess = 0;
+            const scoreDistribution = new Array(N + 1).fill(0);
+            for (const sample of uniqueConsistentSamples) scoreDistribution[checkScore(sample, guessArray)]++;
+            for (let s_obs = 0; s_obs <= N; s_obs++) {
+                if (scoreDistribution[s_obs] > 0) {
+                    const prob_s_obs = scoreDistribution[s_obs] / uniqueConsistentSamples.length;
+                    expectedEntropyForThisGuess += prob_s_obs * Math.log2(scoreDistribution[s_obs]);
+                }
+            }
+            if (expectedEntropyForThisGuess < minExpectedEntropy) {
+                minExpectedEntropy = expectedEntropyForThisGuess; bestGuessPattern = guessArray;
+            }
+        });
+        if (!bestGuessPattern && uniqueConsistentSamples.length > 0) return [...uniqueConsistentSamples[0]];
+        else if (!bestGuessPattern) return baseForFlips;
+        return bestGuessPattern;
+    }
+
+    function determineAINextActionAndUpdateBeliefs(playerSubmittedGuess, playerScoreFromPlayerGuess) {
+      let reinitializeSamplesNeeded = false;
+      if (playerSubmittedGuess && playerScoreFromPlayerGuess !== null) {
+        const existingGuessIndex = ai_xs.findIndex(existingX => existingX.every((val, idx) => val === playerSubmittedGuess[idx]));
+        if (existingGuessIndex === -1) { ai_xs.push([...playerSubmittedGuess]); ai_ys.push(playerScoreFromPlayerGuess); }
+        let previousTotalOnes = ai_totalOnesInTruePattern;
+        if (playerSubmittedGuess.every(bit => bit === 0)) { ai_totalZerosInTruePattern = playerScoreFromPlayerGuess; ai_totalOnesInTruePattern = N - playerScoreFromPlayerGuess; }
+        else if (playerSubmittedGuess.every(bit => bit === 1)) { ai_totalOnesInTruePattern = playerScoreFromPlayerGuess; ai_totalZerosInTruePattern = N - playerScoreFromPlayerGuess; }
+        if (ai_totalOnesInTruePattern !== -1 && previousTotalOnes !== ai_totalOnesInTruePattern) reinitializeSamplesNeeded = true;
+      }
+      const iterationsForAI = isAutoplaying ? autoplaySettings.iterations : currentAiMaxIterations;
+      const numSamplesForAI = isAutoplaying ? autoplaySettings.samples : currentNumSamples;
+      if (ai_samples.length === 0 || reinitializeSamplesNeeded || ai_samples.length !== numSamplesForAI) {
+        initializeSamples(numSamplesForAI);
+      }
+      refineAISamples(iterationsForAI, numSamplesForAI);
+      let newProposedAIBelief;
+      if (ai_xs.length === 0 && ai_totalOnesInTruePattern === -1) newProposedAIBelief = new Array(N).fill(0);
+      else newProposedAIBelief = generateEntropyBasedGuess();
+      const isEqualToPrevious = ai_pastBeliefs.length > 0 && newProposedAIBelief.every((val, idx) => val === ai_pastBeliefs[ai_pastBeliefs.length - 1][idx]);
+      if (isEqualToPrevious && (!playerScoreFromPlayerGuess || playerScoreFromPlayerGuess < N)) ai_isStuckCounter++;
+      else ai_isStuckCounter = 0;
+      let currentUniqueConsistentSamplesCount = 0;
+      if (ai_samples.length > 0) {
+          const tempSet = new Set();
+          ai_samples.forEach(s => {
+              let consistent = true;
+              for(let k=0; k<ai_xs.length; ++k) if(checkScore(s, ai_xs[k]) !== ai_ys[k]) {consistent=false; break;}
+              if(consistent) tempSet.add(s.join(''));
+          });
+          currentUniqueConsistentSamplesCount = tempSet.size;
+      }
+      if (ai_isStuckCounter >= AI_STUCK_THRESHOLD && currentUniqueConsistentSamplesCount > 1) {
+        if(!isAutoplaying) dom.statusMessage.textContent += " (AI trying to break stuck pattern)";
+        let mutatedBelief = [...newProposedAIBelief];
+        const i = Math.floor(Math.random() * N);
+        mutatedBelief[i] = 1 - mutatedBelief[i];
+        if (ai_totalOnesInTruePattern !== -1) {
+            let currentOnes = mutatedBelief.reduce((sum, bit) => sum + bit, 0);
+            let attempts = 0;
+            while (currentOnes !== ai_totalOnesInTruePattern && attempts < N * 2) {
+                const k = Math.floor(Math.random() * N);
+                if (currentOnes > ai_totalOnesInTruePattern && mutatedBelief[k] === 1) { mutatedBelief[k] = 0; currentOnes--; }
+                else if (currentOnes < ai_totalOnesInTruePattern && mutatedBelief[k] === 0) { mutatedBelief[k] = 1; currentOnes++; }
+                attempts++;
+            }
+        }
+        newProposedAIBelief = mutatedBelief; ai_isStuckCounter = 0;
+      }
+      ai_currentBelief = [...newProposedAIBelief];
+      if (ai_pastBeliefs.length > 5) ai_pastBeliefs.shift();
+      ai_pastBeliefs.push([...ai_currentBelief]);
+      if (showConfidence) displayConfidences();
+    }
+
+    function displayConfidences() {
+      confidenceSpans.forEach((span, i) => {
+        if(span) {
+            span.innerHTML = `${(predictorConfidences[i] * 100).toFixed(0)}%`;
+            span.style.display = showConfidence ? 'block' : 'none';
+        }
+      });
+    }
+    dom.btnToggleConfidence.onclick = () => {
+      if(isAutoplaying) return;
+      showConfidence = !showConfidence;
+      displayConfidences();
+    };
+    dom.btnAIGuess.onclick = () => {
+      if (isAutoplaying || actions >= MAX_ACTIONS || (btns.length > 0 && btns[0].disabled)) return;
+      if(ai_xs.length === 0 && ai_pastBeliefs.length === 0 && ai_totalOnesInTruePattern === -1) {
+           determineAINextActionAndUpdateBeliefs(null,null);
+      } else if (ai_pastBeliefs.length === 0 || (ai_xs.length > 0 && ai_pastBeliefs.length <= ai_xs.length && (!ai_pastBeliefs.length || !ai_currentBelief.every((v,i) => v === ai_pastBeliefs[ai_pastBeliefs.length-1][i])) ) ) {
+            determineAINextActionAndUpdateBeliefs(null,null);
+      }
+      patG = [...ai_currentBelief];
+      updateAllGridVisualsFromPatG();
+      dom.statusMessage.textContent = "AI set the grid (Entropy method). Now Check Score.";
+      if (showConfidence) displayConfidences();
+    };
+    document.getElementById('btnScore').onclick = () => {
+      if (isAutoplaying || actions >= MAX_ACTIONS) return;
+
+      currentScore = checkScore(patT, patG);
+
+      actions++;
+      dom.scoreDisplay.textContent = `Score: ${currentScore} / ${N}`;
+      dom.trialsDisplay.textContent = `Trials: ${actions} / ${MAX_ACTIONS}`;
+      dom.statusMessage.textContent = `Checked score: ${currentScore}/${N}.`;
+
+      determineAINextActionAndUpdateBeliefs([...patG], currentScore);
+
+      if (currentScore === N) {
+        endGame(true, false, false); // Manual win
+      } else if (actions >= MAX_ACTIONS) {
+        endGame(false, false, false); // Manual loss due to max actions
+      }
+      dom.btnAIGuess.disabled = (actions >= MAX_ACTIONS || currentScore === N);
+    };
+    document.getElementById('btnAnswer').onclick = () => {
+      if (isAutoplaying) return;
+      patG = [...patT]; updateAllGridVisualsFromPatG(); currentScore = N; //Revealing sets score to N for display
+      endGame(false, true, false); // But it's a loss in terms of coins
+    };
+    document.getElementById('btnDouble').onclick = () => {
+      if (isAutoplaying) return;
+      let currentStakeVal = parseInt(dom.stakeInput.value) || 1;
+      let newStake = Math.min(currentStakeVal * 2, coins > 0 ? coins : 1);
+      dom.stakeInput.value = newStake; updateStakeButtonStates();
+      document.getElementById('btnDouble').disabled = true;
+      dom.statusMessage.textContent = `Next stake doubled to ${newStake}.`;
+    };
+
+    function endGame(isWin, revealed = false, calledFromAutoplay = false) {
+      let stakeForThisGame = calledFromAutoplay ? autoplayCurrentGameStake : (parseInt(dom.stakeInput.value) || 1);
+      let message = "";
+
+      let actualWinOutcome = isWin && !revealed;
+
+      if (actualWinOutcome) {
+        coins += stakeForThisGame;
+        message = `Perfect! You won ${stakeForThisGame} coins!`;
+        if (calledFromAutoplay) {
+            autoplayLastGameWasLoss = false;
+            autoplayWinsThisSession++;
+            autoplayTotalTrialsForWins += autoplayActionsInCurrentGame;
+        }
+      } else {
+        coins -= stakeForThisGame;
+        if (revealed) {
+            message = `Pattern revealed. Lost ${stakeForThisGame} coins.`;
+        } else if (!isWin && ( (calledFromAutoplay && autoplayActionsInCurrentGame >= MAX_ACTIONS) || (!calledFromAutoplay && actions >= MAX_ACTIONS) ) ) {
+            message = `Game Over (Max trials)! Lost ${stakeForThisGame} coins.`;
+        } else {
+             message = `Game Over! Lost ${stakeForThisGame} coins.`;
+        }
+
+        if (calledFromAutoplay) {
+            autoplayLastGameWasLoss = true;
+            autoplayLossesThisSession++;
+            autoplayTotalTrialsForLosses += autoplayActionsInCurrentGame;
+        }
+      }
+      coins = Math.max(0, coins);
+      dom.coinsDisplay.textContent = coins;
+      if (calledFromAutoplay) coinHistory.push(coins);
+
+      if (!calledFromAutoplay) {
+          dom.scoreDisplay.textContent = `Final Score: ${revealed ? 'Revealed' : currentScore} / ${N}`;
+          dom.trialsDisplay.textContent = `Trials: ${actions} / ${MAX_ACTIONS}`;
+          dom.statusMessage.textContent = message;
+          btns.forEach(btn => btn.disabled = true);
+          document.getElementById('btnScore').disabled = true;
+          document.getElementById('btnAnswer').disabled = true;
+          dom.btnAIGuess.disabled = true;
+          if (coins > 0) {
+            document.getElementById('btnDouble').disabled = actualWinOutcome;
+            dom.stakeInput.disabled = false;
+            if (parseInt(dom.stakeInput.value) > coins) dom.stakeInput.value = coins;
+            if ( (isNaN(parseInt(dom.stakeInput.value)) || parseInt(dom.stakeInput.value) < 1) && coins > 0) dom.stakeInput.value = 1;
+          } else {
+            document.getElementById('btnDouble').disabled = true;
+            dom.stakeInput.value = 0; dom.stakeInput.disabled = true;
+            dom.statusMessage.textContent += " You're out of coins!";
+          }
+          updateStakeButtonStates();
+      } else {
+          dom.autoplayStatus.textContent = message;
+          updateAutoplayStatsDisplay();
+          if (dom.autoplayGraphPanel.classList.contains('visible')) drawCoinHistoryGraph();
+      }
+    }
+
+    function restart(isAutoplayRestart = false) {
+      actions = 0;
+      currentScore = 0; 
+      if (!isAutoplayRestart) {
+        autoplayActionsInCurrentGame = 0;
+      }
+
+      dom.scoreDisplay.textContent = `Score: ? / ${N}`;
+      dom.trialsDisplay.textContent = `Trials: ${isAutoplayRestart ? autoplayActionsInCurrentGame : actions} / ${MAX_ACTIONS}`;
+
+      patG.fill(0);
+      updateAllGridVisualsFromPatG();
+      generatePattern();
+
+      ai_xs = []; ai_ys = []; ai_samples = []; ai_weights = [];
+      ai_totalOnesInTruePattern = -1; ai_totalZerosInTruePattern = -1;
+      ai_pastBeliefs = []; ai_isStuckCounter = 0; predictorConfidences.fill(0.5);
+
+      const iterationsForAI = isAutoplayRestart && autoplaySettings.iterations ? autoplaySettings.iterations : currentAiMaxIterations;
+      const numSamplesForAI = isAutoplayRestart && autoplaySettings.samples ? autoplaySettings.samples : currentNumSamples;
+
+      initializeSamples(numSamplesForAI);
+      determineAINextActionAndUpdateBeliefs(null, null);
+
+      if (!isAutoplayRestart) {
+          btns.forEach(btn => btn.disabled = false);
+          document.getElementById('btnScore').disabled = false;
+          document.getElementById('btnAnswer').disabled = false;
+          document.getElementById('btnDouble').disabled = true;
+          dom.btnAIGuess.disabled = false;
+
+          if (coins === 0) {
+            dom.stakeInput.value = 0; dom.stakeInput.disabled = true;
+            document.getElementById('btnScore').disabled = true; dom.btnAIGuess.disabled = true;
+            dom.statusMessage.textContent = "Restarted. You have no coins to play.";
+          } else {
+            dom.stakeInput.disabled = false;
+            let currentStakeVal = parseInt(dom.stakeInput.value);
+            if (isNaN(currentStakeVal) || currentStakeVal <= 0 || currentStakeVal > coins) {
+              dom.stakeInput.value = Math.max(1, Math.min(coins, 10));
+            }
+            dom.statusMessage.textContent = "New game started!";
+          }
+          updateStakeButtonStates(); updateIterationsButtonsState(); updateSamplesButtonsState();
+      }
+    }
+    document.getElementById('btnRestart').onclick = () => {
+      if(isAutoplaying) return;
+      restart(false);
+    };
+
+    function showModal(modalId) {
+        if (modalId === 'autoplayModal') {
+            dom.autoplayCurrentCoinsDisplay.textContent = coins;
+            dom.autoplayStakeInput.value = dom.stakeInput.value;
+            dom.autoplayStakeInput.max = coins;
+            dom.autoplayIterationsInput.value = currentAiMaxIterations;
+            dom.autoplaySamplesInput.value = currentNumSamples;
+        }
+        document.getElementById(modalId).style.display = 'flex';
+    }
+    function hideModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+    document.getElementById('btnHowTo').onclick = () => showModal('howToModal');
+
+    dom.btnAutoPlay.onclick = function() {
+        if (isAutoplaying) stopAutoplay("Manually stopped.");
+        else showModal('autoplayModal');
+    };
+    dom.btnStartAutoplay.onclick = function() {
+        const stakeVal = parseInt(dom.autoplayStakeInput.value);
+        const iterationsVal = parseInt(dom.autoplayIterationsInput.value);
+        const samplesVal = parseInt(dom.autoplaySamplesInput.value);
+        const lossMultiplierVal = parseFloat(dom.autoplayLossMultiplierInput.value);
+        const numGamesVal = parseInt(dom.autoplayNumGamesInput.value);
+        const winTargetVal = parseInt(dom.autoplayWinTargetInput.value);
+        const lossLimitVal = parseInt(dom.autoplayLossLimitInput.value);
+
+        if (isNaN(stakeVal) || stakeVal < 1 || stakeVal > coins) { alert("Invalid stake for autoplay."); return; }
+        if (isNaN(iterationsVal) || iterationsVal < MIN_ITERATIONS_GLOBAL) { alert(`Min AI Iterations: ${MIN_ITERATIONS_GLOBAL}.`); return; }
+        if (isNaN(samplesVal) || samplesVal < MIN_SAMPLES_GLOBAL) { alert(`Min AI Samples: ${MIN_SAMPLES_GLOBAL}.`); return; }
+        if (isNaN(lossMultiplierVal) || lossMultiplierVal < 1) { alert("Loss Multiplier must be >= 1."); return; }
+        if (isNaN(numGamesVal) || numGamesVal < 1) { alert("Number of Games must be >= 1."); return; }
+        if (isNaN(winTargetVal) || winTargetVal < 0) { alert("Win Target must be >= 0."); return; }
+        if (isNaN(lossLimitVal) || lossLimitVal < 0) { alert("Loss Limit must be >= 0."); return; }
+        if (winTargetVal > 0 && winTargetVal <= coins && winTargetVal !==0 ) { alert("Win target must be > current coins if set and not 0."); return; }
+        if (lossLimitVal > 0 && lossLimitVal >= coins && lossLimitVal !==0 ) { alert("Loss limit must be < current coins if set and not 0."); return; }
+
+        autoplaySettings = {
+            stake: stakeVal, iterations: iterationsVal, samples: samplesVal,
+            lossMultiplier: lossMultiplierVal, numGames: numGamesVal,
+            winTarget: winTargetVal, lossLimit: lossLimitVal,
+        };
+        isAutoplaying = true; autoplayGamesPlayedThisSession = 0;
+        autoplayWinsThisSession = 0; autoplayLossesThisSession = 0;
+        autoplayTotalTrialsForWins = 0; autoplayTotalTrialsForLosses = 0;
+        autoplayLastGameWasLoss = false;
+        autoplayCurrentGameStake = autoplaySettings.stake;
+        autoplayInitialCoins = coins; coinHistory = [coins];
+
+        dom.btnAutoPlay.textContent = "Stop Auto"; dom.btnAutoPlay.classList.add("active");
+        dom.statusMessage.textContent = "Autoplay started...";
+        dom.autoplayStatus.textContent = "Preparing first game...";
+        hideModal('autoplayModal'); toggleAutoplayControls(true);
+        updateAutoplayStatsDisplay();
+        if (dom.autoplayGraphPanel.classList.contains('visible')) drawCoinHistoryGraph();
+        prepareAndStartNextAutoplayGame();
+    };
+    function stopAutoplay(reason) {
+        isAutoplaying = false; clearTimeout(autoplayTimeoutId);
+        dom.btnAutoPlay.textContent = "Auto Play"; dom.btnAutoPlay.classList.remove("active");
+        dom.statusMessage.textContent = "Autoplay " + reason;
+        dom.autoplayStatus.textContent = "Autoplay ended. " + reason;
+        toggleAutoplayControls(false);
+        currentAiMaxIterations = parseInt(dom.iterationsInput.value) || MIN_ITERATIONS_GLOBAL;
+        currentNumSamples = parseInt(dom.samplesInput.value) || MIN_SAMPLES_GLOBAL;
+        restart(false); // Restart to a clean manual state
+    }
+    function toggleAutoplayControls(isAutoplayActive) {
+        dom.btnAIGuess.disabled = isAutoplayActive;
+        document.getElementById('btnScore').disabled = isAutoplayActive;
+        document.getElementById('btnAnswer').disabled = isAutoplayActive;
+        document.getElementById('btnDouble').disabled = isAutoplayActive;
+        document.getElementById('btnRestart').disabled = isAutoplayActive;
+        dom.btnToggleConfidence.disabled = isAutoplayActive;
+        dom.stakeInput.disabled = isAutoplaying;
+        dom.decrementStakeBtn.disabled = isAutoplaying;
+        dom.incrementStakeBtn.disabled = isAutoplaying;
+        dom.iterationsInput.disabled = isAutoplaying;
+        dom.decrementIterationsBtn.disabled = isAutoplaying;
+        dom.incrementIterationsBtn.disabled = isAutoplaying;
+        dom.samplesInput.disabled = isAutoplaying;
+        dom.decrementSamplesBtn.disabled = isAutoplaying;
+        dom.incrementSamplesBtn.disabled = isAutoplaying;
+    }
+    function prepareAndStartNextAutoplayGame() {
+        if (!isAutoplaying) return;
+        if (autoplaySettings.winTarget > 0 && coins >= autoplaySettings.winTarget) { stopAutoplay(`Win target (${autoplaySettings.winTarget}) reached.`); return; }
+        if (autoplaySettings.lossLimit > 0 && coins <= autoplaySettings.lossLimit && coins !== 0) { stopAutoplay(`Loss limit (${autoplaySettings.lossLimit}) reached.`); return; }
+        if (autoplayGamesPlayedThisSession >= autoplaySettings.numGames) { stopAutoplay("Target number of games played."); return; }
+        if (autoplayGamesPlayedThisSession > 0 && autoplayLastGameWasLoss) autoplayCurrentGameStake = Math.ceil(autoplayCurrentGameStake * autoplaySettings.lossMultiplier);
+        else autoplayCurrentGameStake = autoplaySettings.stake;
+
+        autoplayCurrentGameStake = Math.min(autoplayCurrentGameStake, coins);
+        if (coins === 0 || autoplayCurrentGameStake <= 0) { stopAutoplay("Out of coins or invalid stake."); return; }
+        if (coins < autoplayCurrentGameStake) { stopAutoplay(`Not enough coins for stake ${autoplayCurrentGameStake}.`); return; }
+        dom.stakeInput.value = autoplayCurrentGameStake;
+        autoplayActionsInCurrentGame = 0;
+        restart(true);
+        dom.autoplayStatus.textContent = `Game ${autoplayGamesPlayedThisSession + 1}/${autoplaySettings.numGames}. Stake: ${autoplayCurrentGameStake}.`;
+        updateAutoplayStatsDisplay();
+        autoplayTimeoutId = setTimeout(runAutoplayTrial, AUTOPLAY_TRIAL_DELAY);
+    }
+
+    function runAutoplayTrial() {
+        if (!isAutoplaying) return;
+        patG = [...ai_currentBelief]; updateAllGridVisualsFromPatG();
+
+        let gameScoreForThisTrial = checkScore(patT, patG);
+        autoplayActionsInCurrentGame++;
+
+        dom.scoreDisplay.textContent = `Score: ${gameScoreForThisTrial} / ${N}`;
+        dom.trialsDisplay.textContent = `Trials: ${autoplayActionsInCurrentGame} / ${MAX_ACTIONS}`;
+        dom.statusMessage.textContent = `Autoplay: Trial ${autoplayActionsInCurrentGame}, Score ${gameScoreForThisTrial}`;
+
+        determineAINextActionAndUpdateBeliefs([...patG], gameScoreForThisTrial);
+
+        if (gameScoreForThisTrial === N || autoplayActionsInCurrentGame >= MAX_ACTIONS) {
+            endGame(gameScoreForThisTrial === N, false, true);
+            autoplayGamesPlayedThisSession++;
+            autoplayTimeoutId = setTimeout(prepareAndStartNextAutoplayGame, AUTOPLAY_TRIAL_DELAY * 2);
+        } else autoplayTimeoutId = setTimeout(runAutoplayTrial, AUTOPLAY_TRIAL_DELAY);
+    }
+    function updateAutoplayStatsDisplay() {
+        dom.statGamesPlayed.textContent = `${autoplayGamesPlayedThisSession}/${autoplaySettings.numGames || '∞'}`;
+        dom.statWins.textContent = autoplayWinsThisSession;
+        dom.statLosses.textContent = autoplayLossesThisSession;
+        dom.statProfitLoss.textContent = (coins - autoplayInitialCoins);
+        dom.statWinRate.textContent = autoplayGamesPlayedThisSession > 0 ? ((autoplayWinsThisSession / autoplayGamesPlayedThisSession) * 100).toFixed(1) + '%' : '-';
+        dom.statAvgTrialsWin.textContent = autoplayWinsThisSession > 0 ? (autoplayTotalTrialsForWins / autoplayWinsThisSession).toFixed(1) : '-';
+        dom.statAvgTrialsLoss.textContent = autoplayLossesThisSession > 0 ? (autoplayTotalTrialsForLosses / autoplayLossesThisSession).toFixed(1) : '-';
+    }
+    dom.btnToggleGraph.onclick = () => {
+        dom.autoplayGraphPanel.classList.toggle('visible');
+        dom.btnToggleGraph.classList.toggle('active');
+        if (dom.autoplayGraphPanel.classList.contains('visible')) drawCoinHistoryGraph();
+    };
+    function drawCoinHistoryGraph() {
+        const canvas = dom.coinHistoryCanvas;
+        const ctx = canvas.getContext('2d');
+        const padding = 25;
+        const width = canvas.width;
+        const height = canvas.height;
+        ctx.clearRect(0, 0, width, height);
+
+        if (coinHistory.length < 2) {
+            ctx.fillStyle = "#6c757d";
+            ctx.font = "13px Segoe UI";
+            ctx.textAlign = "center";
+            ctx.fillText("Autoplay to see graph...", width / 2, height / 2);
+            return;
+        }
+
+        const dataMin = Math.min(...coinHistory);
+        const dataMax = Math.max(...coinHistory);
+        let yAxisMin = Math.max(0, Math.floor(dataMin / 10) * 10 - 10);
+        if (dataMin < yAxisMin + 10 && dataMin > 0) yAxisMin = Math.max(0, dataMin - 10);
+        let yAxisMax = Math.ceil(dataMax / 10) * 10 + 10;
+        if (dataMax > yAxisMax - 10) yAxisMax = dataMax + 10;
+
+        const range = yAxisMax - yAxisMin === 0 ? 1 : yAxisMax - yAxisMin;
+
+        const getX = (index) => padding + (index / (coinHistory.length -1)) * (width - 2 * padding);
+        const getY = (value) => height - padding - ((value - yAxisMin) / range) * (height - 2 * padding);
+
+        ctx.fillStyle = "#495057";
+        ctx.font = "11px Segoe UI";
+        ctx.textAlign = "right";
+        const numYLabels = 5;
+        for (let i = 0; i <= numYLabels; i++) {
+            const val = yAxisMin + (range / numYLabels) * i;
+            const yPos = getY(val);
+            ctx.fillText(val.toFixed(0), padding - 8, yPos + 4);
+            ctx.beginPath();
+            ctx.moveTo(padding - 4, yPos);
+            ctx.lineTo(padding, yPos);
+            ctx.strokeStyle = "#ced4da";
+            ctx.stroke();
+        }
+
+        ctx.textAlign = "center";
+        const numXLabels = Math.min(coinHistory.length, 10);
+         for (let i = 0; i < numXLabels; i++) {
+            let index = Math.floor(i * (coinHistory.length -1) / (numXLabels -1 || 1));
+            if(index >= coinHistory.length && coinHistory.length > 1) index = coinHistory.length -1;
+            else if (coinHistory.length === 1) index = 0;
+
+            if(index < coinHistory.length){
+                const xPos = getX(index);
+                ctx.fillText((index + 1).toString(), xPos, height - padding + 15);
+            }
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(getX(0), getY(coinHistory[0]));
+        for (let i = 1; i < coinHistory.length; i++) {
+            ctx.lineTo(getX(i), getY(coinHistory[i]));
+        }
+        ctx.strokeStyle = "#007bff";
+        ctx.lineWidth = 2;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        ctx.fillStyle = "#007bff";
+        for (let i = 0; i < coinHistory.length; i++) {
+            ctx.beginPath();
+            ctx.arc(getX(i), getY(coinHistory[i]), 3.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function updateStakeButtonStates() {
+        if(isAutoplaying) return;
+        const val = parseInt(dom.stakeInput.value);
+        const stakeDisabled = dom.stakeInput.disabled;
+        dom.decrementStakeBtn.disabled = stakeDisabled || isNaN(val) || val <= 1;
+        dom.incrementStakeBtn.disabled = stakeDisabled || isNaN(val) || val >= coins;
+    }
+    dom.stakeInput.addEventListener('input', () => updateStakeButtonStates());
+    dom.stakeInput.addEventListener('blur', function() {
+      if(isAutoplaying) return;
+      let value = parseInt(this.value);
+      if (isNaN(value) || (value < 1 && coins > 0)) this.value = 1;
+      else if (value > coins && coins > 0) this.value = coins;
+      else if (coins === 0) this.value = 0;
+      if (isNaN(parseInt(this.value)) && coins > 0) this.value = 1;
+      updateStakeButtonStates();
+    });
+    dom.decrementStakeBtn.onclick = () => { if(!isAutoplaying) updateStakeValue(-1); };
+    dom.incrementStakeBtn.onclick = () => { if(!isAutoplaying) updateStakeValue(1); };
+    function updateStakeValue(change) {
+      let currentValue = parseInt(dom.stakeInput.value) || 0;
+      let newValue = currentValue + change;
+      if (coins === 0) dom.stakeInput.value = 0;
+      else dom.stakeInput.value = Math.max(1, Math.min(newValue, coins));
+      updateStakeButtonStates();
+    }
+
+    dom.iterationsInput.addEventListener('input', () => { if(!isAutoplaying) updateIterationsButtonsState(); });
+    dom.iterationsInput.addEventListener('blur', function() {
+        if(isAutoplaying) return;
+        let value = parseInt(this.value);
+        if (isNaN(value) || value < MIN_ITERATIONS_GLOBAL) this.value = MIN_ITERATIONS_GLOBAL;
+        currentAiMaxIterations = parseInt(this.value);
+        updateIterationsButtonsState();
+    });
+    function updateIterationsButtonsState() {
+        if(isAutoplaying) return;
+        const val = parseInt(dom.iterationsInput.value);
+        dom.decrementIterationsBtn.disabled = isNaN(val) || val <= MIN_ITERATIONS_GLOBAL;
+    }
+    dom.decrementIterationsBtn.onclick = () => { if(!isAutoplaying) updateIterationsValueInternal(-1); };
+    dom.incrementIterationsBtn.onclick = () => { if(!isAutoplaying) updateIterationsValueInternal(1); };
+    function updateIterationsValueInternal(change) {
+      let currentValue = parseInt(dom.iterationsInput.value);
+      if(isNaN(currentValue)) currentValue = MIN_ITERATIONS_GLOBAL;
+      let newValue = currentValue + change;
+      dom.iterationsInput.value = Math.max(MIN_ITERATIONS_GLOBAL, newValue);
+      currentAiMaxIterations = parseInt(dom.iterationsInput.value);
+      updateIterationsButtonsState();
+    }
+
+    dom.samplesInput.addEventListener('input', () => { if(!isAutoplaying) updateSamplesButtonsState(); });
+    dom.samplesInput.addEventListener('blur', function() {
+        if(isAutoplaying) return;
+        let oldValueForReinit = currentNumSamples;
+        let value = parseInt(this.value);
+        if (isNaN(value) || value < MIN_SAMPLES_GLOBAL) this.value = MIN_SAMPLES_GLOBAL;
+        currentNumSamples = parseInt(this.value);
+        updateSamplesButtonsState();
+        if (!isAutoplaying && oldValueForReinit !== currentNumSamples && actions > 0 && actions < MAX_ACTIONS && currentScore < N) {
+            dom.statusMessage.textContent += " (Re-calibrating AI samples...)";
+            initializeSamples(currentNumSamples);
+            if(ai_xs.length > 0) refineAISamples(currentAiMaxIterations, currentNumSamples);
+        }
+    });
+    function updateSamplesButtonsState() {
+        if(isAutoplaying) return;
+        const val = parseInt(dom.samplesInput.value);
+        dom.decrementSamplesBtn.disabled = isNaN(val) || val <= MIN_SAMPLES_GLOBAL;
+    }
+    dom.decrementSamplesBtn.onclick = () => { if(!isAutoplaying) updateSamplesValueInternal(-100); };
+    dom.incrementSamplesBtn.onclick = () => { if(!isAutoplaying) updateSamplesValueInternal(100); };
+    function updateSamplesValueInternal(change) {
+      let currentValue = parseInt(dom.samplesInput.value);
+      if(isNaN(currentValue)) currentValue = MIN_SAMPLES_GLOBAL;
+      let newValue = currentValue + change;
+      dom.samplesInput.value = Math.max(MIN_SAMPLES_GLOBAL, newValue);
+      let oldValueForReinit = currentNumSamples;
+      currentNumSamples = parseInt(dom.samplesInput.value);
+      updateSamplesButtonsState();
+      if (!isAutoplaying && oldValueForReinit !== currentNumSamples && actions > 0 && actions < MAX_ACTIONS && currentScore < N) {
+            dom.statusMessage.textContent += " (Re-calibrating AI samples...)";
+            initializeSamples(currentNumSamples);
+            if(ai_xs.length > 0) refineAISamples(currentAiMaxIterations, currentNumSamples);
+      }
+    }
+
+    initGrid();
+    dom.coinsDisplay.textContent = coins;
+    if (dom.maxActionsInfo) dom.maxActionsInfo.textContent = MAX_ACTIONS; // Guarded just in case, though it exists
+    if (dom.minIterationsInfo) dom.minIterationsInfo.textContent = MIN_ITERATIONS_GLOBAL;
+    if (dom.minSamplesInfo) dom.minSamplesInfo.textContent = MIN_SAMPLES_GLOBAL;
+
+    dom.iterationsInput.value = currentAiMaxIterations;
+    dom.samplesInput.value = currentNumSamples;
+
+    restart(false); // This should now run without error.
+    updateIterationsButtonsState();
+    updateSamplesButtonsState();
+  </script>
+</body>
+</html>
